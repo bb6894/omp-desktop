@@ -107,6 +107,57 @@ test("dispatches only declared session commands and rejects agent commands witho
   })).resolves.toMatchObject({ ok: false, code: "INVALID_REQUEST" });
 });
 
+test("serves a read-only harness inspection without starting an agent", async () => {
+  const service = new SessionService(fakeAdapter(), {
+    inspect: async () => ({
+      readOnly: true,
+      source: "harness-store",
+      projectId: "fixture-project",
+      state: {
+        schemaVersion: 1,
+        projectId: "fixture-project",
+        projectPath: "C:\\project",
+        compatibility: { runtimeVersion: "17.4.1", hostProtocol: 1 },
+        goals: [],
+        memories: [],
+        skills: [],
+        agentProfiles: [],
+        proposals: [],
+        refinementHistory: [],
+        snapshots: []
+      }
+    })
+  });
+  await expect(service.dispatch({ type: "harness.inspect", requestId: "harness" })).resolves.toMatchObject({
+    type: "response",
+    requestId: "harness",
+    ok: true,
+    value: { readOnly: true, source: "harness-store", projectId: "fixture-project" }
+  });
+});
+
+test("preserves stable harness rejection codes at the host boundary", async () => {
+  const codes = [
+    "HARNESS_STATE_INVALID_JSON",
+    "HARNESS_SCHEMA_UNSUPPORTED",
+    "HARNESS_PROJECT_MISMATCH",
+    "HARNESS_INCOMPATIBLE",
+    "HARNESS_STATE_INVALID",
+    "HARNESS_STATE_TOO_LARGE",
+    "HARNESS_STATE_LIMIT_EXCEEDED",
+    "HARNESS_SECRET_DETECTED"
+  ];
+  for (const [index, code] of codes.entries()) {
+    const service = new SessionService(fakeAdapter(), {
+      inspect: async () => { throw new Error(code); }
+    });
+    await expect(service.dispatch({ type: "harness.inspect", requestId: `harness-${index}` })).resolves.toMatchObject({
+      ok: false,
+      code
+    });
+  }
+});
+
 test("forwards only the allowlisted agent command surface to the runtime service", async () => {
   const calls: unknown[] = [];
   const agent: AgentServiceApi = {

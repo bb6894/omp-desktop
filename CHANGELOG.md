@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Added the Stage 2 read-only Harness Inspector path from the renderer bridge through Tauri to the compiled Host. Harness state lives outside OMP session files and is rejected when malformed, incompatible, oversized, project-mismatched, schema-invalid, or secret-bearing.
+
 ### Changed
 
 - Localized the live desktop interface for Chinese-first use, while keeping model, tool, command, and protocol identifiers in their original form with Chinese hover explanations.

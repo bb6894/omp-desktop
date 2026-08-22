@@ -1,4 +1,5 @@
 import type { HostEvent, HostResponse } from "./contracts";
+import type { HarnessInspectorApi } from "./harness-contracts";
 import type { OmpSessionAdapter } from "./omp-adapter";
 
 export type AgentServiceApi = {
@@ -20,30 +21,41 @@ function isRequestId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 128;
 }
 
+const KNOWN_ERRORS = new Set([
+  "SESSION_NOT_FOUND",
+  "SESSION_ALREADY_DESKTOP_OWNED",
+  "STALE_CURSOR",
+  "AGENT_ALREADY_RUNNING",
+  "AGENT_NOT_RUNNING",
+  "RUNTIME_NOT_FOUND",
+  "RUNTIME_FILENAME_MISMATCH",
+  "RUNTIME_HASH_MISMATCH",
+  "INTERACTION_NOT_FOUND",
+  "HARNESS_STATE_INVALID_JSON",
+  "HARNESS_SCHEMA_UNSUPPORTED",
+  "HARNESS_PROJECT_MISMATCH",
+  "HARNESS_INCOMPATIBLE",
+  "HARNESS_STATE_INVALID",
+  "HARNESS_STATE_TOO_LARGE",
+  "HARNESS_STATE_LIMIT_EXCEEDED",
+  "HARNESS_SECRET_DETECTED"
+]);
+
 function knownError(error: unknown): string | null {
   const message = error instanceof Error ? error.message : "";
-  return new Set([
-    "SESSION_NOT_FOUND",
-    "SESSION_ALREADY_DESKTOP_OWNED",
-    "STALE_CURSOR",
-    "AGENT_ALREADY_RUNNING",
-    "AGENT_NOT_RUNNING",
-    "RUNTIME_NOT_FOUND",
-    "RUNTIME_FILENAME_MISMATCH",
-    "RUNTIME_HASH_MISMATCH",
-    "INTERACTION_NOT_FOUND"
-  ]).has(message)
-    ? message
-    : null;
+  return KNOWN_ERRORS.has(message) ? message : null;
 }
 
-/** Local command boundary: only session read/fork operations are enabled before the Agent state machine is proven. */
+/** Local boundary for session operations, read-only Harness inspection, and the allowlisted Agent surface. */
 export class SessionService {
   private readonly handledRequestIds = new Set<string>();
   private eventSink: (event: HostEvent) => void = () => undefined;
   private agentService: AgentServiceApi | null = null;
 
-  constructor(private readonly sessions: OmpSessionAdapter) {}
+  constructor(
+    private readonly sessions: OmpSessionAdapter,
+    private readonly harness: HarnessInspectorApi | null = null
+  ) {}
 
   setAgentService(agentService: AgentServiceApi): void {
     this.agentService = agentService;
@@ -81,6 +93,9 @@ export class SessionService {
         case "session.fork":
           if (typeof input.sessionId !== "string") return responseError(requestId, "INVALID_REQUEST");
           return { type: "response", requestId, ok: true, value: await this.sessions.forkFrom(input.sessionId) };
+        case "harness.inspect":
+          if (!this.harness) return responseError(requestId, "HARNESS_UNAVAILABLE");
+          return { type: "response", requestId, ok: true, value: await this.harness.inspect() };
         case "agent.start":
           if (!this.agentService || typeof input.sessionId !== "string" || typeof input.prompt !== "string") {
             return responseError(requestId, "INVALID_REQUEST");

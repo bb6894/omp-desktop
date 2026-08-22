@@ -167,6 +167,19 @@ fn fork_session(
     )
 }
 
+fn harness_inspection_request() -> (&'static str, serde_json::Value) {
+    ("harness.inspect", serde_json::json!({}))
+}
+
+#[tauri::command]
+fn inspect_harness(
+    session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    let (request_type, args) = harness_inspection_request();
+    bridge.request(&session_id, request_type, args)
+}
+
 /// Run the Tauri application. Panics if the runtime fails to initialise.
 ///
 /// # Panics
@@ -187,6 +200,7 @@ pub fn run() {
             list_sessions,
             load_session_messages,
             fork_session,
+            inspect_harness,
             open_project,
             start_git_watch,
             stop_git_watch,
@@ -212,4 +226,16 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod harness_command_tests {
+    use super::harness_inspection_request;
+
+    #[test]
+    fn exposes_a_dedicated_read_only_harness_command() {
+        let (request_type, args) = harness_inspection_request();
+        assert_eq!(request_type, "harness.inspect");
+        assert_eq!(args, serde_json::json!({}));
+    }
 }

@@ -1,10 +1,11 @@
 import { RUNTIME_MANIFEST } from "./runtime-manifest";
 import { serveLocalHost } from "./host-server";
 import { OfficialOmpSessionAdapter } from "./omp-adapter";
-import { resolveProfilePaths } from "./profile-paths";
+import { resolveProfilePaths, type ProfilePaths } from "./profile-paths";
 import { SessionService } from "./session-service";
 import { AgentService, defaultRuntimePath } from "./agent-service";
 import { FixtureAgentService } from "./fixture-agent-service";
+import { HarnessStore } from "./harness-store";
 
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
@@ -27,6 +28,10 @@ function optionValue(args: readonly string[], name: string): string | undefined 
   return value;
 }
 
+export function createHostSessionService(cwd: string, paths: ProfilePaths): SessionService {
+  return new SessionService(new OfficialOmpSessionAdapter(cwd, paths), new HarnessStore(cwd));
+}
+
 async function runHost(): Promise<void> {
   const args = process.argv.slice(2);
   if (!args.includes("--serve")) {
@@ -36,7 +41,7 @@ async function runHost(): Promise<void> {
   const cwd = optionValue(args, "--cwd");
   if (!cwd) throw new Error("HOST_CWD_REQUIRED");
   const paths = resolveProfilePaths(cwd, optionValue(args, "--profile"));
-  const sessions = new SessionService(new OfficialOmpSessionAdapter(cwd, paths));
+  const sessions = createHostSessionService(cwd, paths);
   const agents = args.includes("--fixture")
     ? new FixtureAgentService((event) => sessions.emit(event))
     : new AgentService({

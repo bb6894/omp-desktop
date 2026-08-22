@@ -26,6 +26,7 @@ export type HostRequest =
   | { type: "session.list"; requestId: string }
   | { type: "session.messages"; requestId: string; sessionId: string; cursor: string | null; limit: number }
   | { type: "session.fork"; requestId: string; sessionId: string }
+  | { type: "harness.inspect"; requestId: string }
   | { type: "agent.start"; requestId: string; sessionId: string; prompt: string }
   | { type: "agent.stop"; requestId: string; sessionId: string }
   | { type: "interaction.respond"; requestId: string; sessionId: string; interactionId: string; value: unknown }

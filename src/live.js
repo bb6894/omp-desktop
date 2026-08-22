@@ -897,6 +897,7 @@
     newSession()       { _send({ type: "new_session" }); },
     exportHtml()       { _send({ type: "export_html" }); },
     refreshModels()    { _initFetch(); },
+    inspectHarness()   { return window.inspectHarnessForSession(window.__TAURI__, activeSessionId); },
 
     // ── Login ─────────────────────────────────────────────────────────────────
 
