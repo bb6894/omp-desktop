@@ -1,14 +1,13 @@
-import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
-import { listSessionsReadOnly } from "@oh-my-pi/pi-coding-agent/session/session-listing";
-import { loadSessionMessagesReadOnly } from "@oh-my-pi/pi-coding-agent/session/session-loader";
-import { FileSessionStorage } from "@oh-my-pi/pi-coding-agent/session/session-storage";
-import type { SessionInfo } from "@oh-my-pi/pi-coding-agent/session/session-listing";
 import {
   MAX_RPC_FRAME_BYTES,
   MAX_RPC_REASSEMBLED_BYTES,
-  RpcFrameDecoder
-} from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
-import { getAgentDir } from "@oh-my-pi/pi-utils/dirs";
+  FileSessionStorage,
+  listSessionsReadOnly,
+  loadSessionMessagesReadOnly,
+  RpcFrameDecoder,
+  SessionManager
+} from "./omp-vendor";
+import type { SessionInfo } from "./omp-vendor";
 import { mkdir } from "node:fs/promises";
 import { resolveProfilePaths, type ProfilePaths } from "./profile-paths";
 import type { MessagePage, SessionRecord } from "./contracts";
@@ -24,14 +23,6 @@ export type OmpRpcFrameDecoder = Pick<RpcFrameDecoder, "push">;
 
 export function createOmpRpcFrameDecoder(): OmpRpcFrameDecoder {
   return new RpcFrameDecoder();
-}
-
-export function getDefaultOmpSessionDir(cwd: string, profileDir: string): string {
-  return SessionManager.getDefaultSessionDir(cwd, profileDir);
-}
-
-export function getDefaultOmpProfileDir(): string {
-  return getAgentDir();
 }
 
 export type OmpSessionAdapter = {

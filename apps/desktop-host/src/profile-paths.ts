@@ -1,5 +1,5 @@
 import { isAbsolute, join, normalize, resolve } from "node:path";
-import { getDefaultOmpProfileDir, getDefaultOmpSessionDir } from "./omp-adapter";
+import { getAgentDir, SessionManager } from "./omp-vendor";
 
 export type ProfilePaths = {
   profileDir: string;
@@ -7,10 +7,10 @@ export type ProfilePaths = {
   desktopSessionsDir: string;
 };
 
-export function resolveProfilePaths(cwd: string, profileDir = getDefaultOmpProfileDir()): ProfilePaths {
+export function resolveProfilePaths(cwd: string, profileDir = getAgentDir()): ProfilePaths {
   const normalizedCwd = normalizeAbsoluteWindowsPath(cwd);
   const normalizedProfile = normalizeAbsoluteWindowsPath(profileDir);
-  const terminalSessionsDir = normalize(getDefaultOmpSessionDir(normalizedCwd, normalizedProfile));
+  const terminalSessionsDir = normalize(SessionManager.getDefaultSessionDir(normalizedCwd, normalizedProfile));
   return {
     profileDir: normalizedProfile,
     terminalSessionsDir,

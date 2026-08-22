@@ -1,4 +1,13 @@
-import { createOmpRpcFrameDecoder, OMP_RPC_LIMITS } from "./omp-adapter";
+import {
+  MAX_RPC_FRAME_BYTES,
+  MAX_RPC_REASSEMBLED_BYTES,
+  RpcFrameDecoder
+} from "./omp-vendor";
+
+const OMP_RPC_LIMITS = {
+  physicalFrameBytes: MAX_RPC_FRAME_BYTES,
+  reassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES
+} as const;
 import type { RuntimeProcess } from "./runtime";
 
 export type RpcStatus = "starting" | "ready" | "running" | "stopping" | "closed" | "failed";
@@ -34,7 +43,7 @@ function decodeUtf8(bytes: Uint8Array): string {
 /** Converts arbitrary stdout chunks into complete JSONL frames with hard byte limits. */
 export class RpcLineDecoder {
   private pending = Buffer.alloc(0);
-  private readonly logical = createOmpRpcFrameDecoder();
+  private readonly logical = new RpcFrameDecoder();
 
   push(chunk: Uint8Array): RpcFrame[] {
     if (chunk.byteLength === 0) return [];
