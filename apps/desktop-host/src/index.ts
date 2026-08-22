@@ -3,6 +3,7 @@ import { serveLocalHost } from "./host-server";
 import { OfficialOmpSessionAdapter } from "./omp-adapter";
 import { resolveProfilePaths } from "./profile-paths";
 import { SessionService } from "./session-service";
+import { AgentService, defaultRuntimePath } from "./agent-service";
 
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
@@ -35,9 +36,18 @@ async function runHost(): Promise<void> {
   if (!cwd) throw new Error("HOST_CWD_REQUIRED");
   const paths = resolveProfilePaths(cwd, optionValue(args, "--profile"));
   const sessions = new SessionService(new OfficialOmpSessionAdapter(cwd, paths));
+  const agents = new AgentService({
+    runtimePath: optionValue(args, "--runtime") ?? defaultRuntimePath(process.execPath),
+    cwd,
+    sessionDir: paths.desktopSessionsDir,
+    onEvent: (event) => sessions.emit(event),
+    onDiagnostic: (message) => process.stderr.write(`${message}\n`)
+  });
+  sessions.setAgentService(agents);
   await serveLocalHost(process.stdin, {
     write: (bytes) => process.stdout.write(Buffer.from(bytes))
   }, sessions);
+  await agents.stopAll();
 }
 
 const isCompiledHost = process.execPath.toLowerCase().endsWith("omp-desktop-host.exe");

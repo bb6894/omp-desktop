@@ -8,7 +8,7 @@ import { serveLocalHost } from "../src/host-server";
 import { decodeLocalFrames, encodeLocalFrame } from "../src/local-frame";
 import { OfficialOmpSessionAdapter, type OmpSessionAdapter } from "../src/omp-adapter";
 import { resolveProfilePaths } from "../src/profile-paths";
-import { SessionService } from "../src/session-service";
+import { SessionService, type AgentServiceApi } from "../src/session-service";
 
 test("reads terminal history without changing it and forks a desktop copy", async () => {
   const root = mkdtempSync(join(tmpdir(), "omp-desktop-session-test-"));
@@ -84,7 +84,7 @@ function fakeAdapter(): OmpSessionAdapter {
   };
 }
 
-test("dispatches only declared session commands and rejects duplicate or premature agent commands", async () => {
+test("dispatches only declared session commands and rejects agent commands without a runtime", async () => {
   const service = new SessionService(fakeAdapter());
   await expect(service.dispatch({ type: "session.list", requestId: "one" })).resolves.toMatchObject({ ok: true });
   await expect(service.dispatch({ type: "session.list", requestId: "one" })).resolves.toMatchObject({
@@ -97,8 +97,39 @@ test("dispatches only declared session commands and rejects duplicate or prematu
   });
   await expect(service.dispatch({ type: "agent.start", requestId: "three", sessionId: "desktop-1", prompt: "go" })).resolves.toMatchObject({
     ok: false,
-    code: "NOT_IMPLEMENTED"
+    code: "INVALID_REQUEST"
   });
+  await expect(service.dispatch({
+    type: "agent.command",
+    requestId: "four",
+    sessionId: "desktop-1",
+    command: { type: "shell.execute" }
+  })).resolves.toMatchObject({ ok: false, code: "INVALID_REQUEST" });
+});
+
+test("forwards only the allowlisted agent command surface to the runtime service", async () => {
+  const calls: unknown[] = [];
+  const agent: AgentServiceApi = {
+    start: async (...args) => { calls.push(["start", ...args]); return { state: "streaming" }; },
+    stop: async (...args) => { calls.push(["stop", ...args]); return { state: "stopped" }; },
+    respond: async (...args) => { calls.push(["respond", ...args]); return { accepted: true }; },
+    command: async (...args) => { calls.push(["command", ...args]); return { accepted: true }; }
+  };
+  const service = new SessionService(fakeAdapter());
+  service.setAgentService(agent);
+  await expect(service.dispatch({
+    type: "agent.command", requestId: "command", sessionId: "desktop-1", command: { type: "get_state" }
+  })).resolves.toMatchObject({ ok: true });
+  await expect(service.dispatch({
+    type: "agent.command", requestId: "blocked", sessionId: "desktop-1", command: { type: "arbitrary" }
+  })).resolves.toMatchObject({ ok: false, code: "COMMAND_NOT_ALLOWED" });
+  await expect(service.dispatch({
+    type: "interaction.respond", requestId: "answer", sessionId: "desktop-1", interactionId: "ui-1", value: "yes"
+  })).resolves.toMatchObject({ ok: true });
+  expect(calls).toEqual([
+    ["command", "desktop-1", { type: "get_state" }],
+    ["respond", "desktop-1", "ui-1", "yes"]
+  ]);
 });
 
 test("serves ordered local frames without exposing a raw OMP surface", async () => {

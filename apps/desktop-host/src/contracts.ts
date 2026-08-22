@@ -28,7 +28,8 @@ export type HostRequest =
   | { type: "session.fork"; requestId: string; sessionId: string }
   | { type: "agent.start"; requestId: string; sessionId: string; prompt: string }
   | { type: "agent.stop"; requestId: string; sessionId: string }
-  | { type: "interaction.respond"; requestId: string; sessionId: string; interactionId: string; value: unknown };
+  | { type: "interaction.respond"; requestId: string; sessionId: string; interactionId: string; value: unknown }
+  | { type: "agent.command"; requestId: string; sessionId: string; command: Record<string, unknown> };
 
 export type HostResponse =
   | { type: "response"; requestId: string; ok: true; value: unknown }

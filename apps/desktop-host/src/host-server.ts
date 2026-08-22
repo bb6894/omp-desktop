@@ -1,5 +1,6 @@
 import { encodeLocalFrame, LocalFrameDecoder } from "./local-frame";
 import type { SessionService } from "./session-service";
+import type { HostEvent } from "./contracts";
 
 export type LocalByteWriter = {
   write(bytes: Uint8Array): unknown;
@@ -12,11 +13,23 @@ export async function serveLocalHost(
   sessions: SessionService
 ): Promise<void> {
   const decoder = new LocalFrameDecoder();
+  // Runtime events and command responses share one pipe. Serialize writes so
+  // a streaming event can never interleave with a response frame.
+  let writeQueue = Promise.resolve();
+  const writeFrame = (value: unknown): Promise<void> => {
+    const next = writeQueue.then(() => writer.write(encodeLocalFrame(value))).then(() => undefined);
+    writeQueue = next.catch(() => undefined);
+    return next;
+  };
+  sessions.setEventSink((event: HostEvent) => {
+    void writeFrame(event);
+  });
   for await (const chunk of source) {
     for (const request of decoder.push(chunk)) {
       const response = await sessions.dispatch(request);
-      await writer.write(encodeLocalFrame(response));
+      await writeFrame(response);
     }
   }
   decoder.finish();
+  await writeQueue;
 }

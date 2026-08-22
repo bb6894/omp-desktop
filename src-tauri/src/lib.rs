@@ -4,23 +4,23 @@
 // command signatures stay idiomatic for the Tauri API.
 #![allow(clippy::needless_pass_by_value)]
 
-mod agent;
 mod git;
 mod git_watcher;
+mod host;
 mod process_supervisor;
 
-use agent::AgentBridge;
 use git_watcher::GitWatcherState;
+use host::HostBridge;
 use tauri::{Manager, State};
 
-/// Write a JSON command to a specific session's omp stdin.
+/// Route a renderer command through the compiled Host and its local protocol.
 #[tauri::command]
 fn send_command(
     session_id: String,
     json: String,
-    bridge: State<'_, AgentBridge>,
+    bridge: State<'_, HostBridge>,
 ) -> Result<(), String> {
-    bridge.send(&session_id, &json)
+    bridge.send_command(&session_id, &json)
 }
 
 /// Start an omp process for a new tab session.
@@ -29,7 +29,7 @@ fn send_command(
 fn start_session(
     session_id: String,
     cwd: String,
-    bridge: State<'_, AgentBridge>,
+    bridge: State<'_, HostBridge>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     let cwd_opt = if cwd.is_empty() { None } else { Some(cwd) };
@@ -38,7 +38,7 @@ fn start_session(
 
 /// Kill the omp process for a tab session.
 #[tauri::command]
-fn stop_session(session_id: String, bridge: State<'_, AgentBridge>) {
+fn stop_session(session_id: String, bridge: State<'_, HostBridge>) {
     bridge.stop_session(&session_id);
 }
 
@@ -51,7 +51,7 @@ fn stop_session(session_id: String, bridge: State<'_, AgentBridge>) {
 /// frontend listener was attached in time. The frontend can now query
 /// this synchronously on activation and surface the real reason.
 #[tauri::command]
-fn session_status(session_id: String, bridge: State<'_, AgentBridge>) -> Option<String> {
+fn session_status(session_id: String, bridge: State<'_, HostBridge>) -> Option<String> {
     bridge.last_error(&session_id)
 }
 
@@ -131,6 +131,42 @@ fn open_url_external(url: String) -> Result<(), String> {
     open::that(&url).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn list_sessions(
+    session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(&session_id, "session.list", serde_json::json!({}))
+}
+
+#[tauri::command]
+fn load_session_messages(
+    session_id: String,
+    target_session_id: String,
+    cursor: Option<String>,
+    limit: u32,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "session.messages",
+        serde_json::json!({ "sessionId": target_session_id, "cursor": cursor, "limit": limit }),
+    )
+}
+
+#[tauri::command]
+fn fork_session(
+    session_id: String,
+    target_session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "session.fork",
+        serde_json::json!({ "sessionId": target_session_id }),
+    )
+}
+
 /// Run the Tauri application. Panics if the runtime fails to initialise.
 ///
 /// # Panics
@@ -141,13 +177,16 @@ fn open_url_external(url: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .manage(AgentBridge::new())
+        .manage(HostBridge::new())
         .manage(GitWatcherState::new())
         .invoke_handler(tauri::generate_handler![
             send_command,
             start_session,
             stop_session,
             session_status,
+            list_sessions,
+            load_session_messages,
+            fork_session,
             open_project,
             start_git_watch,
             stop_git_watch,
@@ -165,9 +204,9 @@ pub fn run() {
             // by session_id. The frontend's activateSession queries
             // session_status on attach and surfaces the cached reason
             // if any — no event timing race, no delayed emit thread.
-            let bridge = app.state::<AgentBridge>();
+            let bridge = app.state::<HostBridge>();
             if let Err(e) = bridge.start_session("default".into(), None, app.handle().clone()) {
-                eprintln!("[omp-desktop] failed to start default session: {e}");
+                eprintln!("[omp-desktop] failed to start default Host session: {e}");
             }
             Ok(())
         })

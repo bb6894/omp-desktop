@@ -16,9 +16,9 @@ use std::os::windows::io::AsRawHandle;
 use windows_sys::Win32::Foundation::{CloseHandle, GetLastError, HANDLE};
 #[cfg(windows)]
 use windows_sys::Win32::System::JobObjects::{
-    AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject,
-    JOBOBJECT_BASIC_LIMIT_INFORMATION, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
-    JobObjectExtendedLimitInformation, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+    SetInformationJobObject, JOBOBJECT_BASIC_LIMIT_INFORMATION,
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 };
 
 pub struct ProcessSupervisor {
@@ -43,7 +43,9 @@ impl ProcessSupervisor {
             // by Drop below.
             let job = unsafe { CreateJobObjectW(std::ptr::null(), std::ptr::null()) };
             if job.is_null() {
-                return Err(format!("CreateJobObjectW failed: {}", unsafe { GetLastError() }));
+                return Err(format!("CreateJobObjectW failed: {}", unsafe {
+                    GetLastError()
+                }));
             }
 
             let mut limits = JOBOBJECT_EXTENDED_LIMIT_INFORMATION {
@@ -69,7 +71,8 @@ impl ProcessSupervisor {
                 return Err(format!("SetInformationJobObject failed: {error}"));
             }
 
-            let assigned = unsafe { AssignProcessToJobObject(job, child.as_raw_handle() as HANDLE) };
+            let assigned =
+                unsafe { AssignProcessToJobObject(job, child.as_raw_handle() as HANDLE) };
             if assigned == 0 {
                 let error = unsafe { GetLastError() };
                 unsafe { CloseHandle(job) };
