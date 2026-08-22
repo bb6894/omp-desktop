@@ -30,7 +30,8 @@ function knownError(error: unknown): string | null {
     "AGENT_NOT_RUNNING",
     "RUNTIME_NOT_FOUND",
     "RUNTIME_FILENAME_MISMATCH",
-    "RUNTIME_HASH_MISMATCH"
+    "RUNTIME_HASH_MISMATCH",
+    "INTERACTION_NOT_FOUND"
   ]).has(message)
     ? message
     : null;
