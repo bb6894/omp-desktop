@@ -22,6 +22,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::AppHandle;
 
+use crate::process_supervisor::ProcessSupervisor;
 use inner::BridgeInner;
 use reader::{spawn_stderr_reader, spawn_stdout_reader};
 use spawn::spawn_omp;
@@ -75,6 +76,15 @@ impl AgentBridge {
                 return Err(e);
             }
         };
+        let supervisor = match ProcessSupervisor::attach(&child) {
+            Ok(supervisor) => supervisor,
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                self.cache_error(&session_id, error.clone());
+                return Err(error);
+            }
+        };
         let stdin = child.stdin.take().expect("stdin piped");
         let stdout = child.stdout.take().expect("stdout piped");
         let stderr = child.stderr.take().expect("stderr piped");
@@ -93,16 +103,19 @@ impl AgentBridge {
                 BridgeInner {
                     gen,
                     stdin: Some(stdin_arc),
+                    supervisor: Some(supervisor),
                     child: Some(child),
                 },
             )
         };
         if let Some(mut prev) = prev {
             prev.stdin = None;
+            let supervisor = prev.supervisor.take();
             if let Some(mut c) = prev.child.take() {
                 // Reap off-thread so the Tauri command thread is never
                 // blocked by a stuck process.
                 thread::spawn(move || {
+                    drop(supervisor);
                     let _ = c.kill();
                     let _ = c.wait();
                 });
@@ -130,8 +143,10 @@ impl AgentBridge {
         };
         if let Some(mut inner) = removed {
             inner.stdin = None;
+            let supervisor = inner.supervisor.take();
             if let Some(mut c) = inner.child.take() {
                 thread::spawn(move || {
+                    drop(supervisor);
                     let _ = c.kill();
                     let _ = c.wait();
                 });
@@ -214,6 +229,7 @@ impl Drop for AgentBridge {
         if let Ok(mut sessions) = self.sessions.lock() {
             for (_, mut inner) in sessions.drain() {
                 inner.stdin = None;
+                drop(inner.supervisor.take());
                 if let Some(mut c) = inner.child.take() {
                     let _ = c.kill();
                     let _ = c.wait();

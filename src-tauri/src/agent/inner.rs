@@ -1,6 +1,8 @@
 use std::process::{Child, ChildStdin};
 use std::sync::{Arc, Mutex};
 
+use crate::process_supervisor::ProcessSupervisor;
+
 /// Per-session state held inside `AgentBridge.sessions`.
 pub(super) struct BridgeInner {
     /// Generation token bumped every time a session is started for this id.
@@ -13,6 +15,8 @@ pub(super) struct BridgeInner {
     /// the bridge map lock. A blocked write on a slow consumer can no
     /// longer deadlock concurrent `start_session` / `stop_session` calls.
     pub(super) stdin: Option<Arc<Mutex<ChildStdin>>>,
+    /// Job Object ownership for the complete child process tree.
+    pub(super) supervisor: Option<ProcessSupervisor>,
     /// Live child handle. Cleared once reaped on a background thread.
     pub(super) child: Option<Child>,
 }

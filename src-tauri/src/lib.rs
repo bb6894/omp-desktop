@@ -7,6 +7,7 @@
 mod agent;
 mod git;
 mod git_watcher;
+mod process_supervisor;
 
 use agent::AgentBridge;
 use git_watcher::GitWatcherState;
