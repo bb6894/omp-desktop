@@ -38,17 +38,18 @@ function WindowChrome({ project, peer, onCmd }) {
       </div>
 
       <div className="chrome-right">
-        <button className="btn ghost outlined" onClick={onCmd}>
-          <Icon name="command" size={11} /> bridge{" "}
+        <button className="btn ghost outlined" onClick={onCmd}
+          title="bridge 命令面板 — 搜索并运行命令（Ctrl+K）" aria-label="打开命令面板（bridge，Ctrl+K）">
+          <Icon name="command" size={11} /> 命令面板{" "}
           <span className="kbd">{IS_WIN ? "^K" : "⌘K"}</span>
         </button>
 
         {/* Windows controls — right side, hidden on macOS/Linux */}
         {IS_WIN && (
           <div className="win-controls">
-            <button className="win-ctrl win-min"   title="Minimize">&#8211;</button>
-            <button className="win-ctrl win-max"   title="Maximize / Restore">&#9633;</button>
-            <button className="win-ctrl win-close" title="Close">&#10005;</button>
+            <button className="win-ctrl win-min"   title="最小化" aria-label="最小化">&#8211;</button>
+            <button className="win-ctrl win-max"   title="最大化 / 还原" aria-label="最大化或还原">&#9633;</button>
+            <button className="win-ctrl win-close" title="关闭" aria-label="关闭">&#10005;</button>
           </div>
         )}
       </div>
@@ -70,13 +71,13 @@ function TabBar({ projects, activeId, onSelect, onClose, peer, onNew }) {
             <Icon name="folder" size={11} color={active ? p.color : "var(--fg-4)"} />
             <span className="tab-name">{p.name}</span>
             {p.id === peer?.projectId && (
-              <span className="chip accent" style={{ padding: "1px 6px" }}>split</span>
+              <span className="chip accent" style={{ padding: "1px 6px" }} title="split — 此项目正在并行会话（分屏）中展示">分屏</span>
             )}
-            <button className="tab-close" onClick={e => { e.stopPropagation(); onClose?.(p.id); }}><Icon name="close" size={9} /></button>
+            <button className="tab-close" aria-label="关闭标签页" onClick={e => { e.stopPropagation(); onClose?.(p.id); }}><Icon name="close" size={9} /></button>
           </div>
         );
       })}
-      <button className="tab-add" title="open project" onClick={onNew}>
+      <button className="tab-add" title="打开项目" aria-label="打开项目" onClick={onNew}>
         <Icon name="plus" size={11} />
       </button>
       <div style={{ flex: 1 }} />
@@ -92,16 +93,19 @@ function StatusBar({ ctx, model, thinking, todoDone, todoTotal, onTodo, onModel,
   const thinkLabel = { off: "off", minimal: "min", low: "low", medium: "med", high: "high", xhigh: "max" }[thinking] ?? "—";
   return (
     <div className="status">
-      <span className="status-cell"><span className="dot live" /> connected</span>
+      <span className="status-cell" title="与 omp 运行时的连接状态"><span className="dot live" /> 已连接</span>
       <span className="status-sep">·</span>
-      <button className="status-cell btn ghost" onClick={onModel} style={{ height: 20, padding: "0 6px" }}>
+      <button className="status-cell btn ghost" onClick={onModel} style={{ height: 20, padding: "0 6px" }}
+        title="点击切换模型" aria-label="切换模型">
         <span style={{ color: "var(--accent)" }}>{model.name}</span>
         <Icon name="chev" size={9} color="var(--fg-4)" />
       </button>
       <span className="status-sep">·</span>
-      <span className="status-cell"><Icon name="thinking" size={10} color="var(--lilac)" /> {thinkLabel}</span>
+      <span className="status-cell" title="thinking 思考强度：off | minimal | low | medium | high | xhigh（在输入框下方切换）">
+        <Icon name="thinking" size={10} color="var(--lilac)" /> 思考 {thinkLabel}
+      </span>
       <span className="status-sep">·</span>
-      <span className="status-cell mono">
+      <span className="status-cell mono" title="上下文窗口用量">
         <span style={{ color: "var(--fg-3)" }}>{ctx.label}</span>
         <span className="status-bar-tube">
           <span className="status-bar-fill" style={{ width: `${ctx.pct}%` }} />
@@ -109,23 +113,24 @@ function StatusBar({ ctx, model, thinking, todoDone, todoTotal, onTodo, onModel,
         <span style={{ color: "var(--fg-4)" }}>{(+ctx.pct).toFixed(1)}%</span>
       </span>
       <span className="status-sep">·</span>
-      <span className="status-cell mono"><span style={{ color: "var(--fg-3)" }}>cost</span> {ctx.cost}</span>
+      <span className="status-cell mono" title="本次会话累计成本"><span style={{ color: "var(--fg-3)" }}>成本</span> {ctx.cost}</span>
       <span className="status-sep">·</span>
-      <span className="status-cell mono"><span style={{ color: "var(--fg-3)" }}>{ctx.tokensPerSec}</span> t/s</span>
+      <span className="status-cell mono" title="throughput 吞吐量（tokens / 秒）"><span style={{ color: "var(--fg-3)" }}>{ctx.tokensPerSec}</span> t/s</span>
       <div style={{ flex: 1 }} />
-      <button className="status-cell btn ghost" onClick={onTodo} style={{ height: 20, padding: "0 6px" }}>
+      <button className="status-cell btn ghost" onClick={onTodo} style={{ height: 20, padding: "0 6px" }}
+        title="todo — 打开待办看板" aria-label="待办任务">
         <Icon name="plan" size={11} color="var(--accent)" />
-        <span style={{ color: "var(--accent)" }}>todo {todoDone}/{todoTotal}</span>
+        <span style={{ color: "var(--accent)" }}>待办 {todoDone}/{todoTotal}</span>
       </button>
       <span className="status-sep">·</span>
       <button className="status-cell btn ghost" onClick={() => onAutosave?.(!autosave)}
-        style={{ height: 20, padding: "0 6px" }} title="toggle autosave">
+        style={{ height: 20, padding: "0 6px" }} title="切换自动保存（autosave）" aria-label="切换自动保存">
         <span className="mono" style={{ color: autosave ? "var(--fg-3)" : "var(--fg-5)" }}>
-          autosave {autosave ? "on" : "off"}
+          自动保存 {autosave ? "开" : "关"}
         </span>
       </button>
       <span className="status-sep">·</span>
-      <button className="status-cell btn ghost" onClick={onTweaks} title="tweaks" style={{ height: 20, padding: "0 6px" }}>
+      <button className="status-cell btn ghost" onClick={onTweaks} title="调校面板（tweaks）" aria-label="打开调校面板" style={{ height: 20, padding: "0 6px" }}>
         <Icon name="cog" size={11} color="var(--fg-3)" />
       </button>
     </div>
@@ -151,9 +156,9 @@ function SessionMinimap({ messages, hoveredIdx, onHover, onClick }) {
 
   return (
     <div className="minimap">
-      <div className="minimap-head">
+      <div className="minimap-head" title="minimap 会话缩略图：每格一条消息，点击跳转；亮度对应 token 消耗">
         <Icon name="minimap" size={11} color="var(--fg-3)" />
-        <span className="mono" style={{ color: "var(--fg-3)" }}>session</span>
+        <span className="mono" style={{ color: "var(--fg-3)" }}>会话</span>
         <span className="mono" style={{ marginLeft: "auto", color: "var(--fg-4)" }}>{messages.length}</span>
       </div>
       <div className="minimap-grid">
@@ -178,16 +183,16 @@ function SessionMinimap({ messages, hoveredIdx, onHover, onClick }) {
           if (m.kind === "assistant") {
             const tok  = m.tokens ? `${m.tokens.toLocaleString()} tok` : "—";
             const inOut = (m.tokensIn != null || m.tokensOut != null)
-              ? ` (${(m.tokensIn ?? 0).toLocaleString()} in · ${(m.tokensOut ?? 0).toLocaleString()} out)`
+              ? `（进 ${(m.tokensIn ?? 0).toLocaleString()} · 出 ${(m.tokensOut ?? 0).toLocaleString()}）`
               : "";
-            title = `assistant · ${tok}${inOut}${m.time ? " · " + m.time : ""}`;
+            title = `助手 · ${tok}${inOut}${m.time ? " · " + m.time : ""}`;
           } else if (m.kind === "tool") {
             const dur = m.duration ? ` · ${(m.duration / 1000).toFixed(1)}s` : "";
-            const status = m.status === "running" ? " · running" : (m.status === "ok" ? "" : ` · ${m.status}`);
+            const status = m.status === "running" ? " · 运行中" : (m.status === "ok" ? "" : ` · ${m.status}`);
             title = `${m.tool ?? "tool"}${m.title ? " " + m.title : ""}${dur}${status}`;
           } else if (m.kind === "user") {
             const preview = m.text ? ` · ${m.text.slice(0, 80)}${m.text.length > 80 ? "…" : ""}` : "";
-            title = `you${preview}`;
+            title = `你${preview}`;
           } else {
             title = m.kind;
           }
@@ -226,11 +231,12 @@ function PeerSession({ peer }) {
         </span>
       </div>
       <div className="peer-row mono" style={{ color: "var(--fg-3)" }}>
-        todo {peer.todo.done}/{peer.todo.total}
+        <span title="todo — 并行会话的待办进度">待办 {peer.todo.done}/{peer.todo.total}</span>
         <span className="status-bar-tube" style={{ marginLeft: 6, flex: 1 }}>
           <span className="status-bar-fill" style={{ width: `${(peer.todo.done / peer.todo.total) * 100}%`, background: "var(--cyan)" }} />
         </span>
-        <button className="btn ghost" style={{ marginLeft: 6, height: 18, padding: "0 6px", fontSize: "var(--d-text-xs)" }}>focus →</button>
+        <button className="btn ghost" style={{ marginLeft: 6, height: 18, padding: "0 6px", fontSize: "var(--d-text-xs)" }}
+          title="聚焦到该并行会话">聚焦 →</button>
       </div>
     </div>
   );
@@ -246,19 +252,19 @@ function AmbientRail({ ctx, activity, peer, messages, microcopy, onClose, sparkl
   return (
     <aside className="rail">
       <div className="rail-head">
-        <span className="mono" style={{ color: "var(--fg-3)" }}>ambient</span>
-        <button className="btn icon ghost" onClick={onClose} title="hide rail">
+        <span className="mono" style={{ color: "var(--fg-3)" }} title="ambient 氛围栏：令牌用量、活动雷达、并行会话与会话缩略图">氛围栏</span>
+        <button className="btn icon ghost" onClick={onClose} title="隐藏侧栏（进入专注布局，可在调校面板改回）" aria-label="隐藏侧栏">
           <Icon name="close" size={10} />
         </button>
       </div>
 
       <div className="rail-card glass">
         <TokenGauge used={ctx.used} total={ctx.total} pct={ctx.pct}
-          label={ctx.label} sub={`cost ${ctx.cost} · ${ctx.tokensPerSec} t/s`} />
+          label={ctx.label} sub={`成本 ${ctx.cost} · ${ctx.tokensPerSec} t/s`} />
         <div className="rail-spark">
           <Sparkline values={sparkVals} width={210} height={28} />
           <div className="rail-spark-foot mono">
-            <span style={{ color: "var(--fg-4)" }}>throughput</span>
+            <span style={{ color: "var(--fg-4)" }} title="throughput — 每秒输出 token 数">吞吐量</span>
             <span style={{ color: "var(--accent)" }}>{ctx.tokensPerSec} t/s</span>
           </div>
         </div>
@@ -267,13 +273,13 @@ function AmbientRail({ ctx, activity, peer, messages, microcopy, onClose, sparkl
       <div className="rail-card glass">
         <div className="rail-card-head">
           <Icon name="radar" size={11} color="var(--accent)" />
-          <span className="mono" style={{ color: "var(--fg-2)" }}>agent radar</span>
-          <span className="chip muted mono" style={{ marginLeft: "auto" }}>last 60s</span>
+          <span className="mono" style={{ color: "var(--fg-2)" }} title="agent radar — 最近 60 秒工具调用分布">活动雷达</span>
+          <span className="chip muted mono" style={{ marginLeft: "auto" }}>最近 60 秒</span>
         </div>
         <ActivityRadar activity={activity} tps={ctx.tokensPerSec} />
         <div className="legend">
           {Object.entries(TOOL_META).filter(([k]) => ["read","search","edit","bash"].includes(k)).map(([k, m]) => (
-            <span key={k} className="legend-item">
+            <span key={k} className="legend-item" title={m.zh}>
               <span style={{ background: m.color }} /> {m.label}
             </span>
           ))}
@@ -283,8 +289,8 @@ function AmbientRail({ ctx, activity, peer, messages, microcopy, onClose, sparkl
       <div className="rail-card glass">
         <div className="rail-card-head">
           <Icon name="split" size={11} color="var(--cyan)" />
-          <span className="mono" style={{ color: "var(--fg-2)" }}>peer session</span>
-          <span className="chip" style={{ marginLeft: "auto", color: "var(--cyan)", borderColor: "color-mix(in oklab, var(--cyan) 30%, var(--line))" }}>split</span>
+          <span className="mono" style={{ color: "var(--fg-2)" }} title="peer session — 分屏布局中另一个代理的会话">并行会话</span>
+          <span className="chip" style={{ marginLeft: "auto", color: "var(--cyan)", borderColor: "color-mix(in oklab, var(--cyan) 30%, var(--line))" }} title="split 分屏视图">分屏</span>
         </div>
         <PeerSession peer={peer} />
       </div>
@@ -292,7 +298,7 @@ function AmbientRail({ ctx, activity, peer, messages, microcopy, onClose, sparkl
       <div className="rail-card glass" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 120 }}>
         <div className="rail-card-head">
           <Icon name="minimap" size={11} color="var(--fg-3)" />
-          <span className="mono" style={{ color: "var(--fg-2)" }}>minimap</span>
+          <span className="mono" style={{ color: "var(--fg-2)" }} title="minimap 会话缩略图：每格一条消息，点击跳转">缩略图</span>
         </div>
         <SessionMinimap messages={messages} hoveredIdx={hoveredMsgIdx} onHover={onMinimapHover} onClick={onMinimapClick} />
       </div>

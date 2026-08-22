@@ -9,9 +9,9 @@ function InlinePlan({ plan }) {
       <div className="inline-plan-head">
         <_ChatIcon name="plan" size={12} color="var(--accent)" />
         <span style={{ color: "var(--fg-2)", fontWeight: 600 }}>{plan.title}</span>
-        <span className="chip muted">{plan.phases.reduce((n, p) => n + p.tasks.length, 0)} tasks</span>
+        <span className="chip muted" title="计划包含的任务数">{plan.phases.reduce((n, p) => n + p.tasks.length, 0)} 项任务</span>
         <div style={{ flex: 1 }} />
-        <button className="btn ghost" style={{ height: 22 }}>open kanban →</button>
+        <button className="btn ghost" style={{ height: 22 }} title="打开待办看板">打开看板 →</button>
       </div>
       <div className="inline-plan-body">
         {plan.phases.map((ph) => (
@@ -49,9 +49,10 @@ function AssistantBubble({ msg, idx, highlighted, annotable, annotations, onAnno
           <span className="mono" style={{ color: "var(--accent)" }}>{msg.model ?? "–"}</span>
           <span className="chip muted">{msg.time}</span>
           {msg.lead === "thinking" && (
-            <span className="chip" style={{ color: "var(--lilac)", borderColor: "color-mix(in oklab, var(--lilac) 30%, var(--line))" }}>
+            <span className="chip" style={{ color: "var(--lilac)", borderColor: "color-mix(in oklab, var(--lilac) 30%, var(--line))" }}
+              title="thinking — 本条回复包含思考过程">
               <_ChatIcon name="thinking" size={10} />
-              thinking
+              思考
             </span>
           )}
         </div>

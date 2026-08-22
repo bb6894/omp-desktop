@@ -188,15 +188,15 @@ function App() {
         />
       )}
 
-      <TweaksPanel title="Tweaks" noDeckControls>
-        <TweakSection label="Look">
+      <TweaksPanel title="调校" noDeckControls>
+        <TweakSection label="外观">
           <TweakRadio
-            label="theme"
+            label="主题"
             value={t.theme}
             options={[
-              { label: "aurora",   value: "aurora" },
-              { label: "phosphor", value: "phosphor" },
-              { label: "daylight", value: "daylight" },
+              { label: "极光",     value: "aurora",   title: "aurora — 极光主题" },
+              { label: "荧光终端", value: "phosphor", title: "phosphor — 荧光终端主题" },
+              { label: "日光",     value: "daylight", title: "daylight — 日光主题" },
             ]}
             onChange={(v) => {
               setTweak({ theme: v, accent:
@@ -206,32 +206,32 @@ function App() {
             }}
           />
           <TweakRadio
-            label="density"
+            label="密度"
             value={t.density}
             options={[
-              { label: "cozy", value: "cozy" },
-              { label: "compact", value: "compact" },
-              { label: "dense", value: "dense" },
+              { label: "舒适", value: "cozy", title: "cozy — 舒适间距" },
+              { label: "紧凑", value: "compact", title: "compact — 紧凑间距" },
+              { label: "密集", value: "dense", title: "dense — 密集间距" },
             ]}
             onChange={(v) => setTweak("density", v)}
           />
           <TweakColor
-            label="accent"
+            label="强调色"
             value={t.accent}
             options={["#8AF0C8", "#6EE7FF", "#FF7AC6", "#FFC56E", "#B59BFF", "#C4FF3F"]}
             onChange={(v) => setTweak("accent", v)}
           />
-          <TweakToggle label="mono chat font" value={t.monoChat}
+          <TweakToggle label="聊天等宽字体" value={t.monoChat}
             onChange={(v) => setTweak("monoChat", v)} />
         </TweakSection>
-        <TweakSection label="Layout">
+        <TweakSection label="布局">
           <TweakRadio
-            label="layout"
+            label="布局"
             value={t.layout}
             options={[
-              { label: "rail", value: "rail" },
-              { label: "split", value: "split" },
-              { label: "focus", value: "focus" },
+              { label: "侧栏", value: "rail", title: "rail — 显示右侧信息栏" },
+              { label: "分屏", value: "split", title: "split — 显示并行会话分屏" },
+              { label: "专注", value: "focus", title: "focus — 隐藏侧栏，专注当前会话" },
             ]}
             onChange={(v) => setTweak("layout", v)}
           />

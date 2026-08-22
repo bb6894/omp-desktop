@@ -110,9 +110,9 @@ function Composer({ onSend, onPick, planMode, onTogglePlan, onOpenCmd, onOpenMod
       {planMode && (
         <div className="plan-strip">
           <Icon name="plan" size={12} color="var(--amber)" />
-          <span style={{ color: "var(--amber)" }}>plan mode</span>
-          <span style={{ color: "var(--fg-3)" }}>· I'll draft before I write</span>
-          <button className="btn ghost" onClick={onTogglePlan} style={{ marginLeft: "auto", height: 22 }}>exit</button>
+          <span style={{ color: "var(--amber)" }} title="plan mode — 代理先拟方案，你确认后再动手写代码">计划模式</span>
+          <span style={{ color: "var(--fg-3)" }}>· 先拟方案，确认后再动手</span>
+          <button className="btn ghost" onClick={onTogglePlan} style={{ marginLeft: "auto", height: 22 }}>退出</button>
         </div>
       )}
 
@@ -133,10 +133,10 @@ function Composer({ onSend, onPick, planMode, onTogglePlan, onOpenCmd, onOpenMod
       )}
 
       <div className="composer-row">
-        <button className="btn icon ghost" title="attach image">
+        <button className="btn icon ghost" title="附带图片" aria-label="附带图片">
           <Icon name="image" size={13} />
         </button>
-        <button className="btn icon ghost" title="dictate">
+        <button className="btn icon ghost" title="语音输入" aria-label="语音输入">
           <Icon name="voice" size={13} />
         </button>
         <div className="composer-input">
@@ -145,10 +145,10 @@ function Composer({ onSend, onPick, planMode, onTogglePlan, onOpenCmd, onOpenMod
             rows="1"
             placeholder={
               planMode && !isStreaming
-                ? (microcopy?.planTip ?? "describe what to build, or give feedback on the plan…")
+                ? (microcopy?.planTip ?? "描述要构建的内容，或对计划提出反馈…")
                 : isStreaming
                   ? microcopy?.streamingTip
-                  : (microcopy?.paletteTip ?? "what should we ship?  ·  / for commands  ·  ⌘K for the bridge")
+                  : (microcopy?.paletteTip ?? "今天做点什么？  ·  / 唤出命令  ·  ⌘K 打开命令面板")
             }
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -157,35 +157,34 @@ function Composer({ onSend, onPick, planMode, onTogglePlan, onOpenCmd, onOpenMod
             className="selectable"
           />
         </div>
-        <button className="btn outlined" title="open command bridge (⌘K)" onClick={onOpenCmd}>
+        <button className="btn outlined" title="打开命令面板（⌘K / Ctrl+K）" aria-label="打开命令面板" onClick={onOpenCmd}>
           <Icon name="command" size={11} />
           <span className="kbd" style={{ marginLeft: 2 }}>K</span>
         </button>
         {isStreaming ? (
           <>
             {text.trim() && (
-              <button className="btn outlined" onClick={send}
+              <button className="btn outlined" onClick={send} title="steer — 中途追加指令，改变当前方向"
                 style={{ color: "var(--amber)", borderColor: "color-mix(in oklab, var(--amber) 40%, var(--line))" }}>
-                <Icon name="arrow" size={10} color="var(--amber)" /> steer
+                <Icon name="arrow" size={10} color="var(--amber)" /> 转向
               </button>
             )}
-            <button className="btn danger" onClick={onAbort}>
-              <Icon name="stop" size={10} /> abort <span className="kbd">⎋</span>
+            <button className="btn danger" onClick={onAbort} title="中止当前回合（⎋）" aria-label="中止">
+              <Icon name="stop" size={10} /> 中止 <span className="kbd">⎋</span>
             </button>
           </>
         ) : (
           <>
             {planMode && (
-              <button className="btn outlined" onClick={onApprove}
-                style={{ color: "var(--amber)", borderColor: "color-mix(in oklab, var(--amber) 40%, var(--line))" }}>
-                <Icon name="play" size={10} color="var(--amber)" /> approve
+              <button className="btn outlined" onClick={onApprove} title="批准当前计划，开始执行并转入待办看板">
+                <Icon name="play" size={10} color="var(--amber)" /> 批准
               </button>
             )}
             <button className="btn primary" onClick={send}
               disabled={!(text.trim() || (planMode && annotationCount > 0))}>
               {planMode
-                ? `send feedback${annotationCount > 0 ? ` · ${annotationCount} comment${annotationCount !== 1 ? "s" : ""}` : ""}`
-                : "send"}
+                ? `发送反馈${annotationCount > 0 ? ` · ${annotationCount} 条评论` : ""}`
+                : "发送"}
               {" "}<Icon name="arrow" size={11} />
             </button>
           </>
@@ -193,22 +192,24 @@ function Composer({ onSend, onPick, planMode, onTogglePlan, onOpenCmd, onOpenMod
       </div>
 
       <div className="composer-foot">
-        <button className="composer-pill" onClick={onOpenModel}>
+        <button className="composer-pill" onClick={onOpenModel} title="点击切换模型" aria-label="切换模型">
           <span className="dot live" />
           <span style={{ color: "var(--fg-2)" }}>{currentModel?.name}</span>
           <Icon name="chev" size={10} color="var(--fg-4)" />
         </button>
-        <button className="composer-pill" onClick={onCycleThinking}>
+        <button className="composer-pill" onClick={onCycleThinking}
+          title="点击循环切换 thinking 思考强度：off | minimal | low | medium | high | xhigh" aria-label="切换思考强度">
           <Icon name="thinking" size={11} color="var(--lilac)" />
-          <span style={{ color: "var(--fg-2)" }}>thinking · {thinking}</span>
+          <span style={{ color: "var(--fg-2)" }}>思考 · {thinking}</span>
         </button>
-        <button className={`composer-pill ${planMode ? "on" : ""}`} onClick={onTogglePlan}>
+        <button className={`composer-pill ${planMode ? "on" : ""}`} onClick={onTogglePlan}
+          title="plan mode 计划模式 — 代理先拟方案，你确认后再动手" aria-label="切换计划模式">
           <Icon name="plan" size={11} color={planMode ? "var(--amber)" : "var(--fg-3)"} />
-          <span style={{ color: planMode ? "var(--amber)" : "var(--fg-2)" }}>plan mode</span>
+          <span style={{ color: planMode ? "var(--amber)" : "var(--fg-2)" }}>计划模式</span>
         </button>
         <div style={{ flex: 1 }} />
         <span className="mono" style={{ color: "var(--fg-4)", fontSize: "var(--d-text-xs)" }}>
-          {isStreaming && text.trim() ? "↵ steer · ⎋ abort" : "↵ send · ⇧↵ newline · ⎋ abort"}
+          {isStreaming && text.trim() ? "↵ 转向 · ⎋ 中止" : "↵ 发送 · ⇧↵ 换行 · ⎋ 中止"}
         </span>
       </div>
     </div>
@@ -256,29 +257,29 @@ function CommandBridge({ open, onClose, onPick, onPickModel, currentModelId, onP
       <div className="bridge-scrim" onClick={onClose}>
         <div className="bridge slide-in" onClick={(e) => e.stopPropagation()}>
           <div className="bridge-input-row">
-            <button className="btn icon ghost" title="back"
+            <button className="btn icon ghost" title="返回" aria-label="返回命令列表"
               onClick={() => { setView("commands"); setQ(""); }}
               style={{ marginRight: 4 }}>
               <Icon name="chevR" size={12} color="var(--fg-3)"
                 style={{ transform: "rotate(180deg)", display: "block" }} />
             </button>
             <input ref={inputRef} className="bridge-input mono"
-              placeholder="filter models…" value={q}
+              placeholder="筛选模型…" value={q}
               onChange={(e) => setQ(e.target.value)} />
             <span className="kbd">esc</span>
           </div>
           <div className="bridge-body">
             <div className="bridge-group">
               <div className="bridge-group-head mono" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                switch model
-                <span style={{ color: "var(--fg-4)" }}>
+                切换模型
+                <span style={{ color: "var(--fg-4)" }} title="运行环境诊断：tauri 连接 / omp 会话 / 已加载模型数">
                   tauri:{window.__TAURI__ ? "✓" : "✗"}
                   · connected:{window.OMP_BRIDGE?.isConnected ? "✓" : "✗"}
                   · models:{window.OMP_DATA.models.length}
                 </span>
                 <button className="btn ghost" style={{ marginLeft: "auto", height: 18, fontSize: "var(--d-text-xs)", padding: "0 6px" }}
                   onClick={() => window.OMP_BRIDGE?.refreshModels()}>
-                  refresh
+                  刷新
                 </button>
               </div>
               {modelHits.map((m) => (
@@ -296,13 +297,13 @@ function CommandBridge({ open, onClose, onPick, onPickModel, currentModelId, onP
                   <span className="chip muted" style={{ marginLeft: "auto" }}>{m.latency}ms</span>
                 </button>
               ))}
-              {modelHits.length === 0 && <div className="bridge-empty">no models found</div>}
+              {modelHits.length === 0 && <div className="bridge-empty">未找到匹配的模型</div>}
             </div>
           </div>
           <div className="bridge-foot mono">
-            <span className="kbd">↑↓</span> navigate
-            <span className="kbd">↵</span> switch
-            <span className="kbd">esc</span> back
+            <span className="kbd">↑↓</span> 选择
+            <span className="kbd">↵</span> 切换
+            <span className="kbd">esc</span> 返回
           </div>
         </div>
       </div>
@@ -315,25 +316,25 @@ function CommandBridge({ open, onClose, onPick, onPickModel, currentModelId, onP
       <div className="bridge-scrim" onClick={onClose}>
         <div className="bridge slide-in" onClick={(e) => e.stopPropagation()}>
           <div className="bridge-input-row">
-            <button className="btn icon ghost" title="back"
+            <button className="btn icon ghost" title="返回" aria-label="返回命令列表"
               onClick={() => { setView("commands"); setQ(""); }}
               style={{ marginRight: 4 }}>
               <Icon name="chevR" size={12} color="var(--fg-3)"
                 style={{ transform: "rotate(180deg)", display: "block" }} />
             </button>
             <span className="bridge-input mono" style={{ cursor: "default", lineHeight: "normal" }}>
-              login
+              登录
             </span>
             <span className="kbd">esc</span>
           </div>
           <div className="bridge-body">
             <div className="bridge-group">
-              <div className="bridge-group-head mono">select provider</div>
+              <div className="bridge-group-head mono">选择提供商</div>
               {loginProviders === null && (
-                <div className="bridge-empty" style={{ padding: "16px 32px" }}>loading providers…</div>
+                <div className="bridge-empty" style={{ padding: "16px 32px" }}>正在加载提供商…</div>
               )}
               {loginProviders !== null && loginProviders.length === 0 && (
-                <div className="bridge-empty">no providers available</div>
+                <div className="bridge-empty">没有可用的提供商</div>
               )}
               {loginProviders !== null && loginProviders.map((p) => (
                 <button key={p.id}
@@ -349,15 +350,15 @@ function CommandBridge({ open, onClose, onPick, onPickModel, currentModelId, onP
                   </span>
                   <span className="mono" style={{ color: "var(--fg-4)" }}>{p.id}</span>
                   <span className="chip muted" style={{ marginLeft: "auto" }}>
-                    {p.authenticated ? "logged in" : p.available ? "available" : "unavailable"}
+                    {p.authenticated ? "已登录" : p.available ? "可用" : "不可用"}
                   </span>
                 </button>
               ))}
             </div>
           </div>
           <div className="bridge-foot mono">
-            <span className="kbd">↵</span> authenticate
-            <span className="kbd">esc</span> back
+            <span className="kbd">↵</span> 认证
+            <span className="kbd">esc</span> 返回
           </div>
         </div>
       </div>
@@ -377,7 +378,7 @@ function CommandBridge({ open, onClose, onPick, onPickModel, currentModelId, onP
         <div className="bridge-input-row">
           <Icon name="command" size={14} color="var(--accent)" />
           <input ref={inputRef} className="bridge-input mono"
-            placeholder="cross the bridge — type to filter…" value={q}
+            placeholder="输入以筛选命令…" value={q}
             onChange={(e) => setQ(e.target.value)} />
           <span className="kbd">esc</span>
         </div>
@@ -412,13 +413,13 @@ function CommandBridge({ open, onClose, onPick, onPickModel, currentModelId, onP
             </div>
           ))}
           {cmdHits.length === 0 && (
-            <div className="bridge-empty">no luck — try `plan`, `branch`, `model`…</div>
+            <div className="bridge-empty">没有匹配 —— 试试 `plan`、`branch`、`model`…</div>
           )}
         </div>
         <div className="bridge-foot mono">
-          <span className="kbd">↑↓</span> navigate
-          <span className="kbd">↵</span> run
-          <span className="kbd">esc</span> close
+          <span className="kbd">↑↓</span> 选择
+          <span className="kbd">↵</span> 运行
+          <span className="kbd">esc</span> 关闭
           <span style={{ marginLeft: "auto", color: "var(--fg-4)" }}>{window.OMP_DATA.microcopy.paletteTip}</span>
         </div>
       </div>

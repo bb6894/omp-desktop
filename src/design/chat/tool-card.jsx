@@ -56,7 +56,7 @@ function ScrubbableDiff({ msg }) {
         </div>
       </div>
       <div className="diff-track-wrap">
-        <span className="mono" style={{ color: "var(--fg-4)", fontSize: "var(--d-text-xs)" }}>scrub</span>
+        <span className="mono" style={{ color: "var(--fg-4)", fontSize: "var(--d-text-xs)" }} title="拖动滑块浏览 diff 全文">拖动</span>
         <div className="diff-track" ref={trackRef}
           onMouseMove={onScrub} onMouseLeave={() => setHover(null)}>
           <div className="diff-track-base" />
@@ -139,7 +139,7 @@ function TaskPanel({ subagents }) {
 }
 
 function ToolCard({ msg, idx, highlighted }) {
-  const meta    = _TC_TOOL_META[msg.tool] || { color: "var(--fg-3)", icon: "circle", label: msg.tool };
+  const meta    = _TC_TOOL_META[msg.tool] || { color: "var(--fg-3)", icon: "circle", label: msg.tool, zh: `${msg.tool} — 工具调用` };
   const running = msg.status === "running";
   return (
     <div className={`row tool fade-up${highlighted ? " mm-hot" : ""}`} data-msg-idx={idx}>
@@ -151,17 +151,18 @@ function ToolCard({ msg, idx, highlighted }) {
       </div>
       <div className={`tool-card ${running ? "running" : "ok"}`}>
         <div className="tool-card-head">
-          <span className="tool-tag" style={{ color: meta.color, background: `color-mix(in oklab, ${meta.color} 14%, transparent)`, borderColor: `color-mix(in oklab, ${meta.color} 30%, var(--line))` }}>
+          <span className="tool-tag" style={{ color: meta.color, background: `color-mix(in oklab, ${meta.color} 14%, transparent)`, borderColor: `color-mix(in oklab, ${meta.color} 30%, var(--line))` }}
+            title={meta.zh} aria-label={meta.zh}>
             {meta.label}
           </span>
           <span className="tool-title selectable">{msg.title}</span>
           <div className="tool-card-spacer" />
           {running ? (
             <span className="chip accent" style={{ animation: "pulseDot 1.4s infinite" }}>
-              <span className="dot live" /> running
+              <span className="dot live" /> 运行中
             </span>
           ) : (
-            <span className="chip muted">
+            <span className="chip muted" title="工具耗时">
               <span className="mono">{msg.duration}ms</span>
             </span>
           )}
@@ -174,7 +175,7 @@ function ToolCard({ msg, idx, highlighted }) {
               <div key={i} className={`search-row ${p.hot ? "hot" : ""}`}>
                 <_TC_Icon name="file" size={11} color={p.hot ? "var(--accent)" : "var(--fg-3)"} />
                 <span className="mono" style={{ color: p.hot ? "var(--fg)" : "var(--fg-2)" }}>{p.file}</span>
-                <span className="mono" style={{ color: "var(--fg-4)", marginLeft: "auto" }}>{p.hits} hits</span>
+                <span className="mono" style={{ color: "var(--fg-4)", marginLeft: "auto" }}>{p.hits} 处匹配</span>
               </div>
             ))}
           </div>
@@ -195,7 +196,7 @@ function ToolCard({ msg, idx, highlighted }) {
             <span style={{ color: "var(--fg-2)" }}>{msg.target}</span>
             <span style={{ color: "var(--diff-add-fg)", marginLeft: 8 }} className="mono">+{msg.adds || 0}</span>
             <span style={{ color: "var(--diff-rm-fg)", marginLeft: 4 }} className="mono">−{msg.rems || 0}</span>
-            {running && <span className="shimmer-text" style={{ marginLeft: "auto" }}>writing patch…</span>}
+            {running && <span className="shimmer-text" style={{ marginLeft: "auto" }}>正在写补丁…</span>}
           </div>
         )}
 

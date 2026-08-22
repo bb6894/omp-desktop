@@ -22,7 +22,7 @@ function EvalCell({ cell }) {
         {cell.title && <span className="eval-title">{cell.title}</span>}
         {cell.durationMs != null
           ? <span className="eval-dur" style={{ marginLeft: "auto" }}>{cell.durationMs}ms</span>
-          : cell.status === "running" && <span className="shimmer-text" style={{ marginLeft: "auto", fontSize: 10 }}>running…</span>
+          : cell.status === "running" && <span className="shimmer-text" style={{ marginLeft: "auto", fontSize: 10 }}>运行中…</span>
         }
       </div>
       {cell.code && (

@@ -38,16 +38,16 @@ function AskBubble({ msg, idx, highlighted, onAnswer }) {
       </div>
       <div className="ass-body">
         <div className="ass-meta">
-          <span className="mono" style={{ color: "var(--amber)" }}>Ask</span>
+          <span className="mono" style={{ color: "var(--amber)" }} title="ask — 代理向你提问">Ask</span>
           <span className="chip muted">{msg.time}</span>
           {msg.answered && (
             <span className="chip" style={{ color: "var(--accent)", borderColor: "color-mix(in oklab, var(--accent) 30%, var(--line))" }}>
-              answered
+              已回答
             </span>
           )}
           {msg.cancelled && (
             <span className="chip" style={{ color: "var(--fg-4)", borderColor: "var(--line-bright)" }}>
-              cancelled
+              已取消
             </span>
           )}
         </div>
@@ -86,7 +86,7 @@ function AskBubble({ msg, idx, highlighted, onAnswer }) {
           <input
             className="ask-other-input"
             type="text"
-            placeholder="Or type your own answer…"
+            placeholder="或直接输入你的回答…"
             value={custom}
             disabled={done}
             onChange={e => setCustom(e.target.value)}
@@ -94,7 +94,7 @@ function AskBubble({ msg, idx, highlighted, onAnswer }) {
           />
           {!done && custom.trim() && (
             <button className="ask-submit" onClick={() => submit(custom.trim())}>
-              Submit
+              提交
             </button>
           )}
           {/* Show custom answer inline when the user typed rather than clicked */}

@@ -43,22 +43,22 @@ const CompactRow = React.memo(function CompactRow({ msg }) {
             color: COLOR,
             background: `color-mix(in oklab, ${COLOR} 14%, transparent)`,
             borderColor: `color-mix(in oklab, ${COLOR} 30%, var(--line))`,
-          }}>compact</span>
+          }} title="compact — 压缩上下文窗口，为新一轮对话腾出空间">compact</span>
           <span className="tool-title">
-            {pending ? "compacting context\u2026"
-              : error   ? "compaction failed"
-              : (msg.shortSummary || "context compacted")}
+            {pending ? "正在压缩上下文…"
+              : error   ? "压缩失败"
+              : (msg.shortSummary || "上下文已压缩")}
           </span>
           <div className="tool-card-spacer" />
           {pending && (
             <span className="chip accent" style={{ animation: "pulseDot 1.4s infinite" }}>
-              <span className="dot live" />{" "}running
+              <span className="dot live" />{" "}运行中
             </span>
           )}
           {!pending && !error && tok && (
-            <span className="chip muted mono">{tok} before</span>
+            <span className="chip muted mono" title="压缩前的上下文 token 数">{tok} before</span>
           )}
-          {error && <span className="chip" style={{ color: "var(--rose)" }}>failed</span>}
+          {error && <span className="chip" style={{ color: "var(--rose)" }}>失败</span>}
           {hasBody && <_CV_Icon name={open ? "chev" : "chevR"} size={10} color="var(--fg-4)" />}
         </div>
         {open && hasBody && (

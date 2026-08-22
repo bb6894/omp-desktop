@@ -8,8 +8,8 @@ const { Icon, TOOL_META } = window;
 // ── Phase pill ────────────────────────────────────────────────────────
 function PhasePill({ phase }) {
   const map = {
-    running: { color: "var(--cyan)",   icon: "play",  label: "running" },
-    done:    { color: "var(--accent)", icon: "check", label: "done"    },
+    running: { color: "var(--cyan)",   icon: "play",  label: "运行中" },
+    done:    { color: "var(--accent)", icon: "check", label: "已完成" },
   };
   const m = map[phase] ?? map.running;
   return (
@@ -43,21 +43,21 @@ function PlanKanban({ kanban, planMeta, onClose, onAbort }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Icon name="plan" size={16} color="var(--accent)" />
               <span style={{ fontSize: "var(--d-text-lg)", fontWeight: 600 }}>
-                {phase === "done" ? "plan complete" : "executing plan"}
+                {phase === "done" ? "计划完成" : "正在执行计划"}
               </span>
               <PhasePill phase={phase} />
               <span className="chip muted mono">
-                {done}/{total}{inProg ? ` · ${inProg} live` : ""}
+                {done}/{total}{inProg ? ` · ${inProg} 进行中` : ""}
               </span>
             </div>
             {planMeta?.ask && (
               <div className="plan-ask selectable">
-                <span className="mono" style={{ color: "var(--fg-4)" }}>ask &nbsp;</span>
+                <span className="mono" style={{ color: "var(--fg-4)" }} title="ask — 代理提出的问题">询问&nbsp;</span>
                 <span style={{ color: "var(--fg-2)" }}>{planMeta.ask}</span>
               </div>
             )}
           </div>
-          <button className="btn ghost icon" onClick={onClose} title="close (esc)">
+          <button className="btn ghost icon" onClick={onClose} title="关闭（esc）" aria-label="关闭看板">
             <Icon name="close" size={11} />
           </button>
         </div>
@@ -65,7 +65,7 @@ function PlanKanban({ kanban, planMeta, onClose, onAbort }) {
         {/* Risks */}
         {planMeta?.risks?.length > 0 && (
           <div className="plan-risks">
-            <span className="mono" style={{ color: "var(--amber)" }}>risks</span>
+            <span className="mono" style={{ color: "var(--amber)" }}>风险</span>
             {planMeta.risks.map((r, i) => (
               <span key={i} className="chip" style={{
                 color: `var(--${r.tone})`,
@@ -90,7 +90,7 @@ function PlanKanban({ kanban, planMeta, onClose, onAbort }) {
               ))
             : (
               <div style={{ padding: "32px 24px", color: "var(--fg-4)", fontFamily: "var(--font-mono)", fontSize: "var(--d-text-sm)" }}>
-                waiting for agent to write tasks…
+                等待代理写入任务…
               </div>
             )
           }
@@ -100,20 +100,20 @@ function PlanKanban({ kanban, planMeta, onClose, onAbort }) {
         <div className="kanban-foot mono">
           {phase === "running" && (
             <>
-              <span style={{ color: "var(--fg-4)" }}>agent is executing the plan</span>
+              <span style={{ color: "var(--fg-4)" }}>代理正在执行计划</span>
               <div style={{ flex: 1 }} />
-              <button className="btn danger" onClick={onAbort}>
-                <Icon name="stop" size={10} /> abort
+              <button className="btn danger" onClick={onAbort} title="中止当前回合" aria-label="中止">
+                <Icon name="stop" size={10} /> 中止
               </button>
             </>
           )}
           {phase === "done" && (
             <>
               <span style={{ color: "var(--accent)" }}>
-                plan complete · {done}/{total} tasks shipped
+                计划完成 · {done}/{total} 项任务已交付
               </span>
               <div style={{ flex: 1 }} />
-              <button className="btn primary" onClick={onClose}>close</button>
+              <button className="btn primary" onClick={onClose}>关闭</button>
             </>
           )}
         </div>
@@ -145,7 +145,7 @@ function KanbanCol({ col, idx, mode }) {
 function KanbanCard({ task, idx, mode }) {
   const [open, setOpen] = React.useState(false);
   const tone  = task.status === "done" ? "ok" : task.status === "in_progress" ? "live" : "pending";
-  const tmeta = TOOL_META[task.tool] || { color: "var(--fg-3)", icon: "circle", label: task.tool };
+  const tmeta = TOOL_META[task.tool] || { color: "var(--fg-3)", icon: "circle", label: task.tool, zh: `${task.tool} — 工具调用` };
   const effortColor = task.effort === "L" ? "var(--rose)" : task.effort === "M" ? "var(--amber)" : "var(--fg-3)";
   return (
     <div className={`kcard ${tone} fade-up ${open ? "open" : ""}`}
@@ -162,11 +162,12 @@ function KanbanCard({ task, idx, mode }) {
           color: tmeta.color,
           borderColor: `color-mix(in oklab, ${tmeta.color} 30%, var(--line))`,
           background:  `color-mix(in oklab, ${tmeta.color} 10%, transparent)`,
-        }}>
+        }} title={tmeta.zh} aria-label={tmeta.zh}>
           <Icon name={tmeta.icon} size={9} color={tmeta.color} /> {tmeta.label}
         </span>
         {task.effort && (
-          <span className="chip mono" style={{ color: effortColor, borderColor: `color-mix(in oklab, ${effortColor} 30%, var(--line))` }}>
+          <span className="chip mono" style={{ color: effortColor, borderColor: `color-mix(in oklab, ${effortColor} 30%, var(--line))` }}
+            title="工作量评估：L 大 / M 中 / S 小">
             {task.effort}
           </span>
         )}
@@ -178,15 +179,15 @@ function KanbanCard({ task, idx, mode }) {
       </div>
       {open && task.reason && (
         <div className="kcard-why selectable">
-          <span className="mono" style={{ color: "var(--fg-4)" }}>// why &nbsp;</span>
+          <span className="mono" style={{ color: "var(--fg-4)" }}>// 原因&nbsp;</span>
           <span style={{ color: "var(--fg-3)", fontStyle: "italic" }}>{task.reason}</span>
         </div>
       )}
       {mode === "running" && task.status === "in_progress" && (
         <div className="kcard-live mono">
           <span className="dot live" />
-          <span style={{ color: "var(--cyan)" }}>agent is here</span>
-          <span className="shimmer-text" style={{ marginLeft: "auto" }}>writing patch…</span>
+          <span style={{ color: "var(--cyan)" }}>代理在此</span>
+          <span className="shimmer-text" style={{ marginLeft: "auto" }}>正在写补丁…</span>
         </div>
       )}
     </div>

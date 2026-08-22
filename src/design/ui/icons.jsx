@@ -74,18 +74,19 @@ const Icon = ({ name, size = 14, color = "currentColor", dotColor = "var(--accen
   );
 };
 
-// Tool name → color + icon
+// Tool name → color + icon. `label` stays English (tool names are protocol
+// identifiers); `zh` is the Chinese hover explanation surfaced via title/aria.
 const TOOL_META = {
-  read:    { color: "var(--cyan)",    icon: "file",   label: "read" },
-  search:  { color: "var(--lilac)",   icon: "search", label: "find" },
-  edit:    { color: "var(--accent)",  icon: "diff",   label: "edit" },
-  bash:    { color: "var(--amber)",   icon: "bash",   label: "bash" },
-  write:   { color: "var(--magenta)", icon: "edit",   label: "write" },
-  todo:    { color: "var(--lime)",    icon: "plan",  label: "todo"  },
-  eval:    { color: "var(--rose)",    icon: "test",  label: "eval"  },
-  task:    { color: "var(--cyan)",    icon: "agent", label: "task"  },
-  debug:   { color: "var(--amber)",   icon: "bolt",  label: "debug" },
-  ask:     { color: "var(--fg-3)",    icon: "circle",label: "ask"   },
+  read:    { color: "var(--cyan)",    icon: "file",   label: "read",  zh: "read — 读取文件" },
+  search:  { color: "var(--lilac)",   icon: "search", label: "find",  zh: "find — 搜索代码库" },
+  edit:    { color: "var(--accent)",  icon: "diff",   label: "edit",  zh: "edit — 编辑文件（diff）" },
+  bash:    { color: "var(--amber)",   icon: "bash",   label: "bash",  zh: "bash — 执行命令" },
+  write:   { color: "var(--magenta)", icon: "edit",   label: "write", zh: "write — 写入文件" },
+  todo:    { color: "var(--lime)",    icon: "plan",   label: "todo",  zh: "todo — 更新待办任务" },
+  eval:    { color: "var(--rose)",    icon: "test",   label: "eval",  zh: "eval — 运行代码单元" },
+  task:    { color: "var(--cyan)",    icon: "agent",  label: "task",  zh: "task — 子代理任务" },
+  debug:   { color: "var(--amber)",   icon: "bolt",   label: "debug", zh: "debug — 调试诊断" },
+  ask:     { color: "var(--fg-3)",    icon: "circle", label: "ask",   zh: "ask — 代理向你提问" },
 };
 
 Object.assign(window, { Icon, TOOL_META });

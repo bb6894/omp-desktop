@@ -71,13 +71,13 @@ const ActivityRadar = ({ activity, tps }) => {
               background: c ? _SP_TOOL_META[c.k]?.color : "transparent",
               animationDelay: `${i * 30}ms`,
             }}
-            title={c ? `t-${60 - i}s · ${c.k}` : ""} />
+            title={c ? `${60 - i} 秒前 · ${_SP_TOOL_META[c.k]?.zh ?? c.k}` : ""} />
         ))}
       </div>
       <div className="radar-foot">
-        <span className="mono" style={{ color: "var(--fg-3)" }}>−60s</span>
-        <span className="mono" style={{ color: "var(--accent)" }}>{tps} t/s</span>
-        <span className="mono" style={{ color: "var(--fg-3)" }}>now</span>
+        <span className="mono" style={{ color: "var(--fg-3)" }}>−60 秒</span>
+        <span className="mono" style={{ color: "var(--accent)" }} title="throughput — 每秒输出 token 数">{tps} t/s</span>
+        <span className="mono" style={{ color: "var(--fg-3)" }}>现在</span>
       </div>
     </div>
   );

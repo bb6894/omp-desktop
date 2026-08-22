@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Localized the live desktop interface for Chinese-first use, while keeping model, tool, command, and protocol identifiers in their original form with Chinese hover explanations.
+- Localized the tuning panel labels and option descriptions without changing their persisted values or behavior.
+- Configured the NSIS installer to use Simplified Chinese on Windows.
+
 ### Fixed
 
 - Tab switch drops all tool cards from chat — `get_messages` returns only text entries; tool/ask/compact cards live exclusively in live event state. Fixed by merging `get_messages` ground-truth text into the existing snapshot (preserving tool cards in-place) instead of replacing `state.messages` wholesale. `activeToolCards` indices are rebuilt after merge so in-flight `tool_execution_update` events continue landing correctly.

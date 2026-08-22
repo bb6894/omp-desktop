@@ -144,10 +144,10 @@ function App() {
       // Use bridge.addAssistantMessage — writes into state.messages so the message
       // survives any subsequent notify() call (e.g. model registry refresh after login).
       await bridge.login(provider.id);
-      bridge.addAssistantMessage(`Logged in to **${provider.name}**.`);
+      bridge.addAssistantMessage(`已登录 **${provider.name}**。`);
     } catch (err) {
       const msg = err?.message ?? String(err);
-      bridge.addAssistantMessage(`**Login failed (${provider.name}):** ${msg}`);
+      bridge.addAssistantMessage(`**登录失败（${provider.name}）：** ${msg}`);
     }
   };
   const cycleThinking    = () => bridge?.cycleThinking();
@@ -193,7 +193,9 @@ function App() {
 
   const showRail  = t.layout !== "focus";
   const showSplit = t.layout === "split" && data.peer !== null;
-  const safePeer  = data.peer ?? NULL_PEER;
+  // NULL_PEER lives in app/constants.js (untouched); localize its display
+  // copy here so the rail's peer card reads Chinese in the empty state.
+  const safePeer  = data.peer ?? { ...NULL_PEER, title: "暂无并行会话", activity: "edit · 空闲" };
   const liveCtx   = ctx ?? data.ctx;
 
   return (
@@ -298,43 +300,43 @@ function App() {
         />
       )}
 
-      <TweaksPanel title="Tweaks" noDeckControls>
-        <TweakSection label="Look">
-          <TweakRadio label="theme" value={t.theme}
+      <TweaksPanel title="调校" noDeckControls>
+        <TweakSection label="外观">
+          <TweakRadio label="主题" value={t.theme}
             options={[
-              { label: "aurora",   value: "aurora"   },
-              { label: "phosphor", value: "phosphor" },
-              { label: "daylight", value: "daylight" },
+              { label: "极光",     value: "aurora",   title: "aurora — 极光主题" },
+              { label: "荧光终端", value: "phosphor", title: "phosphor — 荧光终端主题" },
+              { label: "日光",     value: "daylight", title: "daylight — 日光主题" },
             ]}
             onChange={v => setTweak({ theme: v, accent:
               v === "aurora"   ? "#8AF0C8" :
               v === "phosphor" ? "#C4FF3F" : "#1F8A5B"
             })}
           />
-          <TweakRadio label="density" value={t.density}
+          <TweakRadio label="密度" value={t.density}
             options={[
-              { label: "cozy",    value: "cozy"    },
-              { label: "compact", value: "compact" },
-              { label: "dense",   value: "dense"   },
+              { label: "舒适", value: "cozy",    title: "cozy — 舒适间距" },
+              { label: "紧凑", value: "compact", title: "compact — 紧凑间距" },
+              { label: "密集", value: "dense",   title: "dense — 密集间距" },
             ]}
             onChange={v => setTweak("density", v)}
           />
-          <TweakColor label="accent" value={t.accent}
+          <TweakColor label="强调色" value={t.accent}
             options={["#8AF0C8", "#6EE7FF", "#FF7AC6", "#FFC56E", "#B59BFF", "#C4FF3F"]}
             onChange={v => setTweak("accent", v)}
           />
-          <TweakToggle label="mono chat font" value={t.monoChat}
+          <TweakToggle label="聊天等宽字体" value={t.monoChat}
             onChange={v => setTweak("monoChat", v)} />
-          <TweakSlider label="font size" value={t.fontSize ?? 100}
+          <TweakSlider label="字体大小" value={t.fontSize ?? 100}
             min={75} max={150} step={5} unit="%"
             onChange={v => setTweak("fontSize", v)} />
         </TweakSection>
-        <TweakSection label="Layout">
-          <TweakRadio label="layout" value={t.layout}
+        <TweakSection label="布局">
+          <TweakRadio label="布局" value={t.layout}
             options={[
-              { label: "rail",  value: "rail"  },
-              { label: "split", value: "split" },
-              { label: "focus", value: "focus" },
+              { label: "侧栏", value: "rail",  title: "rail — 显示右侧信息栏" },
+              { label: "分屏", value: "split", title: "split — 显示并行会话分屏" },
+              { label: "专注", value: "focus", title: "focus — 隐藏侧栏，专注当前会话" },
             ]}
             onChange={v => setTweak("layout", v)}
           />
