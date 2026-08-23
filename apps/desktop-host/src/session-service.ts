@@ -21,6 +21,22 @@ function isRequestId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 128;
 }
 
+const REQUEST_KEYS = {
+  "session.list": ["requestId", "type"],
+  "session.messages": ["cursor", "limit", "requestId", "sessionId", "type"],
+  "session.fork": ["requestId", "sessionId", "type"],
+  "harness.inspect": ["requestId", "type"],
+  "agent.start": ["prompt", "requestId", "sessionId", "type"],
+  "agent.stop": ["requestId", "sessionId", "type"],
+  "interaction.respond": ["interactionId", "requestId", "sessionId", "type", "value"],
+  "agent.command": ["command", "requestId", "sessionId", "type"]
+} as const;
+
+function hasOnlyKeys(input: Record<string, unknown>, allowed: readonly string[]): boolean {
+  const allowedKeys = new Set(allowed);
+  return Object.keys(input).every((key) => allowedKeys.has(key));
+}
+
 const KNOWN_ERRORS = new Set([
   "SESSION_NOT_FOUND",
   "SESSION_ALREADY_DESKTOP_OWNED",
@@ -76,6 +92,12 @@ export class SessionService {
     const requestId = input.requestId;
     if (this.handledRequestIds.has(requestId)) return responseError(requestId, "DUPLICATE_REQUEST_ID");
     this.handledRequestIds.add(requestId);
+    const allowedKeys = Object.hasOwn(REQUEST_KEYS, input.type)
+      ? REQUEST_KEYS[input.type as keyof typeof REQUEST_KEYS]
+      : undefined;
+    if (allowedKeys && !hasOnlyKeys(input, allowedKeys)) {
+      return responseError(requestId, "INVALID_REQUEST");
+    }
     try {
       switch (input.type) {
         case "session.list":

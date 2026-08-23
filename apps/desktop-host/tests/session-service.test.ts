@@ -199,3 +199,85 @@ test("serves ordered local frames without exposing a raw OMP surface", async () 
   expect(decodeLocalFrames(written[0]).frames[0]).toMatchObject({ requestId: "one", ok: true });
   expect(decodeLocalFrames(written[1]).frames[0]).toMatchObject({ requestId: "two", ok: false, code: "UNKNOWN_COMMAND" });
 });
+
+test("rejects undeclared top-level fields including renderer-supplied paths", async () => {
+  const service = new SessionService(fakeAdapter(), {
+    inspect: async () => ({
+      readOnly: true,
+      source: "harness-store",
+      projectId: "fixture-project",
+      state: {
+        schemaVersion: 1,
+        projectId: "fixture-project",
+        projectPath: "C:\\project",
+        compatibility: { runtimeVersion: "17.4.1", hostProtocol: 1 },
+        goals: [],
+        memories: [],
+        skills: [],
+        agentProfiles: [],
+        proposals: [],
+        refinementHistory: [],
+        snapshots: []
+      }
+    })
+  });
+  service.setAgentService({
+    start: async () => ({ state: "streaming" }),
+    stop: async () => ({ state: "stopped" }),
+    respond: async () => ({ accepted: true }),
+    command: async () => ({ accepted: true })
+  });
+
+  const requests: unknown[] = [
+    { type: "session.list", requestId: "closed-1", sourcePath: "C:\\source" },
+    {
+      type: "session.messages",
+      requestId: "closed-2",
+      sessionId: "terminal-1",
+      cursor: null,
+      limit: 10,
+      path: "C:\\source"
+    },
+    {
+      type: "session.fork",
+      requestId: "closed-3",
+      sessionId: "terminal-1",
+      sourcePath: "C:\\source"
+    },
+    { type: "harness.inspect", requestId: "closed-4", harnessPath: "C:\\harness" },
+    {
+      type: "agent.start",
+      requestId: "closed-5",
+      sessionId: "desktop-1",
+      prompt: "go",
+      runtimePath: "C:\\runtime"
+    },
+    { type: "agent.stop", requestId: "closed-6", sessionId: "desktop-1", path: "C:\\runtime" },
+    {
+      type: "interaction.respond",
+      requestId: "closed-7",
+      sessionId: "desktop-1",
+      interactionId: "ui-1",
+      value: "yes",
+      path: "C:\\interaction"
+    },
+    {
+      type: "agent.command",
+      requestId: "closed-8",
+      sessionId: "desktop-1",
+      command: { type: "get_state" },
+      path: "C:\\command"
+    }
+  ];
+
+  for (const request of requests) {
+    await expect(service.dispatch(request)).resolves.toMatchObject({
+      ok: false,
+      code: "INVALID_REQUEST"
+    });
+  }
+  await expect(service.dispatch({
+    type: "toString",
+    requestId: "closed-prototype"
+  })).resolves.toMatchObject({ ok: false, code: "UNKNOWN_COMMAND" });
+});
