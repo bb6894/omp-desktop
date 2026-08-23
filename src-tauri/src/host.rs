@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::env;
-use std::io::{BufReader, ErrorKind, Read, Write};
+use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -12,9 +12,9 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::local_frame::{encode_local_frame, read_local_frame};
 use crate::process_supervisor::ProcessSupervisor;
 
-const MAX_LOCAL_FRAME_BYTES: usize = 16 * 1024 * 1024;
 const HOST_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 struct HostInner {
@@ -277,43 +277,6 @@ impl Drop for HostBridge {
             }
         }
     }
-}
-
-fn encode_local_frame(value: &Value) -> Result<Vec<u8>, String> {
-    let payload =
-        serde_json::to_vec(value).map_err(|_| "host request is not serializable".to_string())?;
-    if payload.is_empty() || payload.len() > MAX_LOCAL_FRAME_BYTES {
-        return Err("HOST_FRAME_SIZE_INVALID".to_string());
-    }
-    let mut output = Vec::with_capacity(4 + payload.len());
-    output.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-    output.extend_from_slice(&payload);
-    Ok(output)
-}
-
-fn read_local_frame(reader: &mut BufReader<ChildStdout>) -> Result<Option<Value>, String> {
-    let mut header = [0u8; 4];
-    let mut read = 0;
-    while read < header.len() {
-        match reader.read(&mut header[read..]) {
-            Ok(0) if read == 0 => return Ok(None),
-            Ok(0) => return Err("HOST_FRAME_TRUNCATED".to_string()),
-            Ok(count) => read += count,
-            Err(error) if error.kind() == ErrorKind::Interrupted => continue,
-            Err(error) => return Err(format!("host stdout read failed: {error}")),
-        }
-    }
-    let length = u32::from_le_bytes(header) as usize;
-    if length == 0 || length > MAX_LOCAL_FRAME_BYTES {
-        return Err("HOST_FRAME_SIZE_INVALID".to_string());
-    }
-    let mut payload = vec![0u8; length];
-    reader
-        .read_exact(&mut payload)
-        .map_err(|_| "HOST_FRAME_TRUNCATED".to_string())?;
-    serde_json::from_slice(&payload)
-        .map(Some)
-        .map_err(|_| "HOST_FRAME_NOT_JSON".to_string())
 }
 
 fn spawn_stdout_reader(

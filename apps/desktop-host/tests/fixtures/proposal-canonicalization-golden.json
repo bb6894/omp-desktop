@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "stage3a-proposal-v1",
+      "value": {
+        "schemaVersion": 1,
+        "payload": {
+          "items": [
+            { "value": 1, "key": "alpha" },
+            { "value": null, "key": "beta" }
+          ],
+          "enabled": true,
+          "content": "保留 UTF-8\nline"
+        },
+        "kind": "proposal"
+      },
+      "canonicalJson": "{\"kind\":\"proposal\",\"payload\":{\"content\":\"保留 UTF-8\\nline\",\"enabled\":true,\"items\":[{\"key\":\"alpha\",\"value\":1},{\"key\":\"beta\",\"value\":null}]},\"schemaVersion\":1}",
+      "utf8Hex": "7b226b696e64223a2270726f706f73616c222c227061796c6f6164223a7b22636f6e74656e74223a22e4bf9de79599205554462d385c6e6c696e65222c22656e61626c6564223a747275652c226974656d73223a5b7b226b6579223a22616c706861222c2276616c7565223a317d2c7b226b6579223a2262657461222c2276616c7565223a6e756c6c7d5d7d2c22736368656d6156657273696f6e223a317d",
+      "sha256": "c43490cdf65948b7a69884179973b6514d33052b7fd60f6667636494a1a62b58"
+    }
+  ]
+}

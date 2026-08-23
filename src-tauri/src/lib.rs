@@ -7,7 +7,11 @@
 mod git;
 mod git_watcher;
 mod host;
+mod local_frame;
 mod process_supervisor;
+
+#[cfg(test)]
+mod contract_vectors;
 
 use git_watcher::GitWatcherState;
 use host::HostBridge;

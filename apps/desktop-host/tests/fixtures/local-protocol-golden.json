@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "request",
+      "value": { "requestId": "golden-request", "type": "session.list" },
+      "frameHex": "340000007b22726571756573744964223a22676f6c64656e2d72657175657374222c2274797065223a2273657373696f6e2e6c697374227d"
+    },
+    {
+      "name": "success",
+      "value": { "ok": true, "requestId": "golden-request", "type": "response", "value": { "sessions": [] } },
+      "frameHex": "520000007b226f6b223a747275652c22726571756573744964223a22676f6c64656e2d72657175657374222c2274797065223a22726573706f6e7365222c2276616c7565223a7b2273657373696f6e73223a5b5d7d7d"
+    },
+    {
+      "name": "error",
+      "value": { "code": "UNKNOWN_COMMAND", "message": "unknown command", "ok": false, "requestId": "golden-error", "type": "response" },
+      "frameHex": "6e0000007b22636f6465223a22554e4b4e4f574e5f434f4d4d414e44222c226d657373616765223a22756e6b6e6f776e20636f6d6d616e64222c226f6b223a66616c73652c22726571756573744964223a22676f6c64656e2d6572726f72222c2274797065223a22726573706f6e7365227d"
+    }
+  ]
+}

@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, test } from "bun:test";
 import { encodeLocalFrame, LocalFrameDecoder, MAX_LOCAL_FRAME_BYTES } from "../src/local-frame";
+
+type GoldenFixture = {
+  schemaVersion: 1;
+  cases: Array<{ name: string; value: unknown; frameHex: string }>;
+};
 
 test("encodes and decodes complete, partial, and coalesced local frames", () => {
   const first = encodeLocalFrame({ type: "one", value: 1 });
@@ -40,4 +47,19 @@ test("rejects zero, oversized, non-UTF8, non-JSON, and truncated local frames", 
 test("rejects values that cannot fit in the local protocol", () => {
   expect(() => encodeLocalFrame(undefined)).toThrow("LOCAL_FRAME_SIZE_INVALID");
   expect(() => encodeLocalFrame({ text: "x".repeat(MAX_LOCAL_FRAME_BYTES) })).toThrow("LOCAL_FRAME_SIZE_INVALID");
+});
+
+test("matches the shared request, success, and error frame vectors", () => {
+  const fixture = JSON.parse(readFileSync(
+    resolve(import.meta.dir, "fixtures/local-protocol-golden.json"),
+    "utf8"
+  )) as GoldenFixture;
+  expect(fixture.schemaVersion).toBe(1);
+  for (const item of fixture.cases) {
+    const encoded = encodeLocalFrame(item.value);
+    expect(Buffer.from(encoded).toString("hex"), item.name).toBe(item.frameHex);
+    const decoder = new LocalFrameDecoder();
+    expect(decoder.push(Buffer.from(item.frameHex, "hex")), item.name).toEqual([item.value]);
+    decoder.finish();
+  }
 });
