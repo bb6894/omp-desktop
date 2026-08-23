@@ -22,6 +22,9 @@ tree and speaks the bounded local framed protocol to Rust.
 | Rust check | `cargo check --manifest-path src-tauri/Cargo.toml --locked` |
 | Rust fmt | `cargo fmt --manifest-path src-tauri/Cargo.toml --all` |
 | Rust tests | `cargo test --manifest-path src-tauri/Cargo.toml --locked` |
+| Full local verification | `npm run verify` |
+| Frontend dependency check | `npm run frontend:check` |
+| Architecture boundary check | `npm run architecture:test` |
 
 The bundled artifacts are `artifacts/omp-desktop-host.exe` and
 `artifacts/omp-windows-x64.exe`. The Runtime hash must match
@@ -175,10 +178,10 @@ All non-trivial code **must** have test coverage before committing. This is not 
 
 ## CI / release
 
-- `.github/workflows/ci.yml` is currently incomplete and is replaced in Stage
-  2.5 Plan 2 by the Windows-only `npm run verify` gate.
-- `.github/workflows/release.yml` is replaced in Stage 2.5 Plan 3 by a
-  Windows-only MSI + NSIS release workflow.
+- `.github/workflows/ci.yml` runs `npm run verify` on Windows for Host,
+  frontend, Rust, tools, lockfile, configuration, and workflow changes.
+- Full MSI/NSIS packaging remains the release and milestone gate defined in
+  Stage 2.5 Plan 3.
 
 ## Changelog workflow
 
