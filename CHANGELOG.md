@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Localized the live desktop interface for Chinese-first use, while keeping model, tool, command, and protocol identifiers in their original form with Chinese hover explanations.
 - Localized the tuning panel labels and option descriptions without changing their persisted values or behavior.
 - Configured the NSIS installer to use Simplified Chinese on Windows.
+- Windows bundles now rebuild and smoke-test the compiled Desktop Host, verify the pinned official OMP Runtime, and record the exact packaged hashes before producing MSI or NSIS installers.
 
 ### Fixed
 

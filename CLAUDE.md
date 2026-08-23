@@ -25,6 +25,9 @@ tree and speaks the bounded local framed protocol to Rust.
 | Full local verification | `npm run verify` |
 | Frontend dependency check | `npm run frontend:check` |
 | Architecture boundary check | `npm run architecture:test` |
+| Fetch pinned Runtime | `npm run runtime:fetch` |
+| Prepare bundle resources | `npm run prepare:bundle` |
+| Full MSI/NSIS verification | `npm run verify:bundle` |
 
 The bundled artifacts are `artifacts/omp-desktop-host.exe` and
 `artifacts/omp-windows-x64.exe`. The Runtime hash must match
@@ -178,10 +181,15 @@ All non-trivial code **must** have test coverage before committing. This is not 
 
 ## CI / release
 
-- `.github/workflows/ci.yml` runs `npm run verify` on Windows for Host,
-  frontend, Rust, tools, lockfile, configuration, and workflow changes.
-- Full MSI/NSIS packaging remains the release and milestone gate defined in
-  Stage 2.5 Plan 3.
+- `.github/workflows/ci.yml` runs `npm run verify` on Windows.
+- `.github/workflows/release.yml` fetches and verifies the pinned official OMP
+  Runtime, runs the same verification gate, then builds Windows MSI and NSIS
+  artifacts.
+- Tauri `beforeBuildCommand` always rebuilds and smoke-tests the Host and writes
+  `artifacts/bundle-evidence.json` before packaging.
+- Bundle preparation requires the exact `.node-version`, `.bun-version`, and
+  Rust toolchain; use the verified Node 24.19.0 probe directory on machines
+  whose default Node version differs.
 
 ## Changelog workflow
 
