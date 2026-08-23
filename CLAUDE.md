@@ -1,41 +1,67 @@
 # CLAUDE.md
 
-Tauri 2 desktop shell for `omp` (oh-my-pi). React UI loaded from `src/` by Tauri's asset server. Rust backend spawns `omp --mode rpc` per tab. **No bundler** — JSX is transpiled in-browser by `@babel/standalone`.
+Windows-only Tauri 2 desktop shell for `omp` (oh-my-pi). The React UI is loaded
+from `src/` by Tauri's asset server. **No bundler** — JSX is transpiled in the
+WebView by the vendored `@babel/standalone`.
+
+Rust does not spawn `omp` directly. Rust starts one verified Bun-compiled
+Desktop Host per UI tab; that Host owns the pinned OMP Runtime 17.4.1 process
+tree and speaks the bounded local framed protocol to Rust.
 
 ## Commands
 
 | Task | Command |
 |---|---|
-| Install Tauri CLI | `npm install` |
+| Install Tauri CLI | `npm ci` |
+| Install Host dependencies | `bun install --cwd apps/desktop-host --frozen-lockfile` |
+| Host tests | `npm run host:test` |
+| Build Host sidecar | `npm run host:build` |
+| Host fixture smoke | `bun tools/smoke-host-fixture.ts artifacts/omp-desktop-host.exe` |
 | Dev | `npm run dev` |
-| Prod build | `npm run build` |
-| Rust check (CI) | `cd src-tauri && cargo check --locked` |
-| Rust fmt | `cd src-tauri && cargo fmt` |
-| Rust lint (must stay clean) | `cd src-tauri && cargo +nightly clippy --all-targets --all-features -- -W clippy::pedantic -W clippy::nursery -D warnings` |
-| Rust tests | `cd src-tauri && cargo test` |
-| Probe omp RPC | `node test-rpc.mjs` |
+| Windows bundle | `npm run build` |
+| Rust check | `cargo check --manifest-path src-tauri/Cargo.toml --locked` |
+| Rust fmt | `cargo fmt --manifest-path src-tauri/Cargo.toml --all` |
+| Rust tests | `cargo test --manifest-path src-tauri/Cargo.toml --locked` |
 
-`omp` must be on PATH (`%LOCALAPPDATA%\omp\omp.exe` on Win). CI = `cargo check` + `cargo test` on win/linux/mac.
+The bundled artifacts are `artifacts/omp-desktop-host.exe` and
+`artifacts/omp-windows-x64.exe`. The Runtime hash must match
+`apps/desktop-host/src/runtime-manifest.ts`. A system `omp` on `PATH` is not the
+normal production path.
 
 ## Architecture
 
-Three layers:
+Three runtime layers:
 
-1. **Rust (`src-tauri/src/`)** — `agent/` module:
-   - `mod.rs` — `AgentBridge` public API (start/stop/send/last_error).
-   - `inner.rs` — `BridgeInner` per-session: generation token, `Arc<Mutex<ChildStdin>>`, child handle.
-   - `spawn.rs` — `spawn_omp` candidate resolution + Win `CREATE_NO_WINDOW`.
-   - `reader.rs` — stdout/stderr threads + bounded `read_until_capped` (16 MiB).
+1. **Rust/Tauri (`src-tauri/src/`)**
+   - `lib.rs` exposes the narrow Tauri command surface.
+   - `host.rs` implements `HostBridge`, owns one compiled Desktop Host per tab,
+     translates framed responses into Tauri events, and rejects unbound paths or
+     malformed renderer commands.
+   - `process_supervisor.rs` attaches each Host/OMP process tree to a Windows Job
+     Object so stop, window close, and process exit leave no orphan processes.
 
-   `AgentBridge` = `HashMap<session_id, BridgeInner>`. Per-session stdin lock so writes don't serialise through the map. Reader emits `agent://line/{id}` per stdout line, `agent://exit/{id}` (empty payload = clean, non-empty = reason). Tauri commands in `lib.rs`: `start_session`, `stop_session`, `send_command`, `session_status`, `open_project`. `Drop` + `stop_session` kill children — no orphans on hot-reload.
+2. **Desktop Host (`apps/desktop-host/src/`)**
+   - `contracts.ts` defines the closed local request/response DTO surface.
+   - `session-service.ts` dispatches allowlisted session, Agent, interaction, and
+     read-only Harness requests.
+   - `agent-service.ts` and `rpc-bridge.ts` manage the official OMP RPC v2 path.
+   - `harness-store.ts` is read-only in the current release.
+   - `omp-vendor.ts` is the only production module that imports `@oh-my-pi/*`.
+   - OMP package and Runtime versions remain pinned exactly to `17.4.1`.
 
-2. **Bridge (`src/live.js`)** — listens to `agent://line/{id}` for active session only. Holds per-session live state and a `sessionRegistry` (tabs). Tab switch: snapshot → tear down listeners → restore (or reset+`_initFetch`) → re-listen. Exposes `window.OMP_BRIDGE` (commands + `onUpdate`) and legacy `window.OMP_DATA`.
-
-3. **React (`src/app-live.jsx` + `src/app/` + `src/design/*/`)** — sole React root. Uses `useBridgeSnapshot` (in `src/app/use-bridge-snapshot.jsx`) to mirror `OMP_BRIDGE.onUpdate` into hooks. Cross-cutting effects (theme on `<html>`, ⌘K) live there. Constants/framing strings in `src/app/constants.js`. Pure RPC↔UI shape transforms in `src/adapter.js` (no side effects, depends on `model-names.js`).
+3. **Legacy no-bundler frontend (`src/`)**
+   - `live.js` adapts Host events into per-tab renderer state.
+   - `app/harness-client.js` exposes the dedicated read-only Harness command.
+   - `app-live.jsx` is the sole React root.
+   - `src/design/**` is the authoritative live UI source.
+   - `src/index.html` script order is the dependency graph.
 
 ## Session model
 
-One tab = one omp process. `default` session started in `lib.rs::setup`; new tabs via `OMP_BRIDGE.openSession(cwd)` → `start_session`. Tab switch preserves in-flight bubbles via `sessionSnapshots`; after re-listen, `get_messages` is called and `_handleResponse` merges persisted turns with cached `streamingBubble` (omp doesn't persist incomplete turns).
+One UI tab owns one Rust `HostBridge` child. The compiled Desktop Host owns the
+verified OMP Runtime process tree for that tab. Source terminal sessions remain
+`history-readonly`; writable desktop work uses `desktop-owned` forks. Rust and
+the UI never parse or rewrite OMP's private session files.
 
 ## Frontend load order (`src/index.html`)
 
@@ -44,9 +70,9 @@ Script order **is** the dependency graph:
 1. Vendored libs: React, ReactDOM, Babel, `marked.min.js`, `highlight.min.js` + marked-wiring inline.
 2. Tweaks: `tweaks/style.js`, `tweaks/use-tweaks.js` (plain, IIFE) → `tweaks/panel.jsx`, `tweaks/controls.jsx` (Babel; controls depends on panel).
 3. UI primitives: `ui/icons.jsx` (defines `Icon`, `TOOL_META`) → `ui/sparks.jsx` → `ui/markdown.jsx` → `ui/plan-annotations.jsx`.
-4. Chat: `chat/user-bubble.jsx` → `chat/eval-cell.jsx` → `chat/assistant-bubble.jsx` → `chat/tool-card.jsx` → `chat/chat-view.jsx`.
-5. `design/composer.jsx`, `design/chrome.jsx`, `design/panels.jsx`.
-6. Live data: `model-names.js` → `adapter.js` → `live.js`.
+4. Chat: `chat/user-bubble.jsx` → `chat/eval-cell.jsx` → `chat/assistant-bubble.jsx` → `chat/tool-card.jsx` → `chat/ask-bubble.jsx` → `chat/chat-view.jsx`.
+5. `design/composer.jsx`, `design/chrome.jsx`, `design/panels.jsx`, `design/harness/inspector.jsx`.
+6. Live data: `model-names.js` → `adapter.js` → `app/harness-client.js` → `live.js`.
 7. App helpers: `app/constants.js` (plain, IIFE) → `app/use-bridge-snapshot.jsx`.
 8. `app-live.jsx` last.
 
@@ -87,7 +113,7 @@ Trigger: 6th major component in one file, or 4th unrelated concern in one Rust m
 ## Things easy to break
 
 - `omp --mode rpc`, **not** `omp --rpc` (latter falls through to TUI, floods stdout with ANSI).
-- Blank-line stdout: `agent/reader.rs` distinguishes EOF (`(0,_)`) from blank lines and strips CR/LF. Don't revert to `reader.lines()` with blanket `_ => break` — silently kills reader on first blank line.
+- Host framed reader (`host.rs` `read_local_frame`): clean EOF is allowed only before a new 4-byte little-endian header (`Ok(0)` at offset 0); a partial header or payload must fail as `HOST_FRAME_TRUNCATED`, never silently break the reader loop.
 - Window controls use document-level click delegation (React mounts after `DOMContentLoaded`); `querySelector` in `_setupWindowChrome` would miss it.
 - `set_model` response **must** call `notify()` immediately, else next `turn_start` re-emits stale `state.model` and UI reverts.
 - Long `if/else if` chains in `_handleResponse` (`live.js`): a single misplaced `}` cascades — `_handleResponse` never closes, IIFE syntax errors, `window.OMP_DATA` never set. Re-verify brace structure when inserting branches.
@@ -116,7 +142,7 @@ Trigger: 6th major component in one file, or 4th unrelated concern in one Rust m
 - Module-level `#![allow(clippy::needless_pass_by_value)]` in `lib.rs` is intentional — Tauri `#[command]` requires owned types.
 
 **Frontend:**
-- Prettier for JS/TS; respect any present ESLint config. Use repo-configured npm scripts when present (none currently — no JS test/lint pipeline in this repo).
+- Prettier for JS/TS; respect any present ESLint config. Host and frontend boundary checks run under Bun via `npm run host:test` (including the `omp-vendor.ts` production import boundary and the test-oracle allowlist). There is still no frontend bundler or linter pipeline.
 - Don't reformat unrelated files. Preserve existing import ordering/style.
 - Prefer TS types over `any` (when TS is present; this repo is JSX).
 
@@ -124,7 +150,7 @@ Trigger: 6th major component in one file, or 4th unrelated concern in one Rust m
 - Keep FE/BE boundaries explicit. Don't expose unnecessary commands.
 - Validate/sanitise all inputs crossing the IPC boundary. Strongly typed payloads.
 - No blocking ops inside async commands. Off-thread `kill+wait` (see `start_session`/`stop_session`).
-- Isolate platform-specific logic (e.g. `CREATE_NO_WINDOW` lives in `agent/spawn.rs`).
+- Isolate platform-specific logic (e.g. Windows Job Objects live in `process_supervisor.rs`; verified Host process creation lives in `host.rs`).
 
 **Disallowed unless justified:** clone-heavy ownership; owned `String`/`Vec` params where borrows suffice; collecting only to iterate once; unneeded boxing; async tasks without lifecycle justification; large formatting-only rewrites; formatting unrelated files.
 
@@ -149,8 +175,10 @@ All non-trivial code **must** have test coverage before committing. This is not 
 
 ## CI / release
 
-- `.github/workflows/ci.yml` — `cargo check --locked` + `cargo test --locked` on win/linux/mac for `src-tauri/**`, `src/**`, or workflow changes.
-- `.github/workflows/release.yml` — bundles via `tauri build`.
+- `.github/workflows/ci.yml` is currently incomplete and is replaced in Stage
+  2.5 Plan 2 by the Windows-only `npm run verify` gate.
+- `.github/workflows/release.yml` is replaced in Stage 2.5 Plan 3 by a
+  Windows-only MSI + NSIS release workflow.
 
 ## Changelog workflow
 
