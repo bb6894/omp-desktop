@@ -1,0 +1,84 @@
+/* harness/inspector.css — isolated .harness-* visual layer for the
+   read-only Harness Inspector dialog. Reuses global design tokens and
+   shared utilities (glass, btn, chip, mono, selectable) only. */
+
+.harness-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: color-mix(in oklab, var(--bg-app) 72%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.harness-dialog {
+  width: min(1080px, 100%);
+  max-height: min(820px, calc(100vh - 56px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-pop);
+}
+
+.harness-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.harness-header h2 { margin: 2px 0 6px; font-size: 1.05rem; }
+.harness-header p { max-width: 720px; margin: 0; color: var(--fg-3); font-size: var(--d-text-sm); }
+.harness-eyebrow { color: var(--accent); font-family: var(--font-mono); font-size: var(--d-text-xs); letter-spacing: 0.08em; text-transform: uppercase; }
+.harness-actions { display: flex; align-items: flex-start; gap: 8px; }
+.harness-body { overflow: auto; padding: 18px 22px 24px; }
+
+.harness-meta-grid,
+.harness-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.harness-meta-card,
+.harness-summary-card,
+.harness-state-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.harness-meta-card { min-width: 0; padding: 11px 12px; }
+.harness-meta-card span,
+.harness-summary-card span { display: block; color: var(--fg-3); font-size: var(--d-text-xs); }
+.harness-meta-card strong { display: block; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.harness-summary-grid { margin-top: 12px; }
+.harness-summary-card { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; }
+.harness-summary-card strong { color: var(--accent); font-size: 1rem; }
+.harness-state-card { margin-bottom: 12px; padding: 14px; color: var(--fg-2); }
+.harness-error { display: grid; gap: 8px; border-color: color-mix(in oklab, var(--rose) 38%, var(--line)); color: var(--rose); }
+.harness-limit-note { margin-top: 12px; margin-bottom: 0; }
+
+.harness-sections { display: grid; gap: 14px; margin-top: 16px; }
+.harness-section { border-top: 1px solid var(--line); padding-top: 12px; }
+.harness-section-title { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--fg-2); font-weight: 600; }
+.harness-section-empty { padding: 12px; color: var(--fg-4); font-size: var(--d-text-sm); }
+.harness-entry-list { display: grid; gap: 8px; }
+.harness-entry { padding: 11px 12px; border: 1px solid var(--line-soft); border-radius: var(--r-1); background: var(--bg-input); }
+.harness-entry-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.harness-entry-head strong { min-width: 0; overflow-wrap: anywhere; }
+.harness-entry-meta { margin-top: 4px; color: var(--fg-4); font-size: var(--d-text-xs); overflow-wrap: anywhere; }
+.harness-entry-content { margin-top: 8px; color: var(--fg-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .harness-overlay { padding: 12px; }
+  .harness-dialog { max-height: calc(100vh - 24px); }
+  .harness-header { padding: 16px; }
+  .harness-body { padding: 14px 16px 18px; }
+  .harness-meta-grid { grid-template-columns: 1fr 1fr; }
+}

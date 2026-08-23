@@ -16,7 +16,7 @@
 
 const {
   Icon, ChatView, Composer, CommandBridge, WindowChrome, TabBar,
-  StatusBar, AmbientRail, PlanKanban, useTweaks,
+  StatusBar, AmbientRail, PlanKanban, HarnessInspector, useTweaks,
   TweaksPanel, TweakSection, TweakRadio, TweakToggle, TweakColor, TweakSlider,
   TWEAK_DEFAULTS, NULL_MODEL, EMPTY_PROJECT, NULL_PEER,
   INTENT_FRAMING, APPROVAL_PROMPT,
@@ -40,6 +40,13 @@ function App() {
     if (value === null) delete next[idx]; else next[idx] = value;
     return next;
   }), []);
+
+  // ── Harness Inspector (read-only — OMP_BRIDGE.inspectHarness) ────────────
+  const [harnessOpen, setHarnessOpen] = React.useState(false);
+  const [harnessInspection, setHarnessInspection] = React.useState(null);
+  const [harnessLoading, setHarnessLoading] = React.useState(false);
+  const [harnessError, setHarnessError] = React.useState(null);
+  const [harnessOwnerSessionId, setHarnessOwnerSessionId] = React.useState("");
 
   // Cross-component highlight: hovering a minimap cell lights up the
   // matching chat bubble; clicking scrolls to it.
@@ -66,6 +73,18 @@ function App() {
   // Each entry: { id, name, path, color, branch }
   const [sessions,        setSessions]        = React.useState([]);
   const [activeSessionId, setActiveSessionId] = React.useState("");
+  const harnessRequestGeneration = React.useRef(0);
+  const activeHarnessSessionIdRef = React.useRef(activeSessionId);
+  activeHarnessSessionIdRef.current = activeSessionId;
+
+  const closeHarnessInspection = React.useCallback(() => {
+    harnessRequestGeneration.current += 1;
+    setHarnessOpen(false);
+    setHarnessInspection(null);
+    setHarnessLoading(false);
+    setHarnessError(null);
+    setHarnessOwnerSessionId("");
+  }, []);
 
   // ── Cross-cutting effects (bridge subscription, theme, ⌘K) ────────────────
   useBridgeSnapshot(bridge, {
@@ -76,6 +95,12 @@ function App() {
   });
   useThemeEffect(t);
   useCommandShortcut(setBridgeOpen, setBridgeView);
+
+  // Active-session changes can also come from opening or closing a tab. Make
+  // every in-flight inspection stale before another project's state can render.
+  React.useEffect(() => {
+    closeHarnessInspection();
+  }, [activeSessionId, closeHarnessInspection]);
 
   // Fetch OAuth providers whenever the login view opens (ensures fresh auth status)
   React.useEffect(() => {
@@ -152,6 +177,36 @@ function App() {
   };
   const cycleThinking    = () => bridge?.cycleThinking();
 
+  // Read-only Harness inspection — the only bridge call the Inspector makes.
+  const loadHarnessInspection = React.useCallback(async () => {
+    const requestGeneration = ++harnessRequestGeneration.current;
+    const requestedSessionId = activeSessionId;
+    const isCurrentRequest = () => (
+      harnessRequestGeneration.current === requestGeneration
+      && activeHarnessSessionIdRef.current === requestedSessionId
+    );
+
+    setHarnessOwnerSessionId(requestedSessionId);
+    setHarnessOpen(true);
+    setHarnessInspection(null);
+    setHarnessLoading(true);
+    setHarnessError(null);
+    try {
+      const result = await bridge.inspectHarness(requestedSessionId || null);
+      if (!isCurrentRequest()) return;
+      setHarnessInspection(result);
+    } catch (err) {
+      if (!isCurrentRequest()) return;
+      const errorCode = typeof err === "string"
+        ? err
+        : err?.message ?? "HARNESS_INSPECTION_FAILED";
+      setHarnessInspection(null);
+      setHarnessError(errorCode);
+    } finally {
+      if (isCurrentRequest()) setHarnessLoading(false);
+    }
+  }, [activeSessionId, bridge]);
+
   const handleCommand = c => {
     if      (c.name === "plan")     { setPlanMode(true); planStartedRef.current = false; }
     else if (c.name === "todo")     { setPlanOpen(true); }
@@ -161,6 +216,7 @@ function App() {
     else if (c.name === "model")    { openBridge("models"); }
     else if (c.name === "login")    { openBridge("login"); }
     else if (c.name === "new")      { bridge?.newSession(); }
+    else if (c.name === "harness")  { void loadHarnessInspection(); }
   };
 
   const handleApprovePlan = () => {
@@ -175,6 +231,7 @@ function App() {
   // and re-fetches from the new session's omp → notify() pushes fresh data.
   const handleSelectTab = id => {
     if (id === activeSessionId) return;
+    closeHarnessInspection();
     bridge?.activateSession(id);
     // setActiveSessionId is driven by snap.activeSessionId from onUpdate
   };
@@ -289,6 +346,15 @@ function App() {
         onPickLogin={handlePickLogin}
         loginProviders={loginProviders}
         currentModelId={model.id}
+      />
+
+      <HarnessInspector
+        open={harnessOpen && harnessOwnerSessionId === activeSessionId}
+        inspection={harnessInspection}
+        loading={harnessLoading}
+        error={harnessError}
+        onClose={closeHarnessInspection}
+        onRefresh={loadHarnessInspection}
       />
 
       {planOpen && (

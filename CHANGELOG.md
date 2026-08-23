@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Added the Stage 2 read-only Harness Inspector path from the renderer bridge through Tauri to the compiled Host. Harness state lives outside OMP session files and is rejected when malformed, incompatible, oversized, project-mismatched, schema-invalid, or secret-bearing.
+- Added a Chinese-first, read-only Harness Inspector dialog with project compatibility, collection counts, bounded entry previews, explicit empty/error states, and session-bound async results.
 
 ### Changed
 

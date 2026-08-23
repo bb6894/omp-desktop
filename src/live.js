@@ -30,6 +30,7 @@
       { name: "login",    hint: "登录模型提供商",                       icon: "⊙", group: "代理" },
       { name: "todo",     hint: "打开待办看板",                         icon: "▦", group: "视图" },
       { name: "export",   hint: "导出本次会话为 HTML",                  icon: "⇪", group: "视图" },
+      { name: "harness",  hint: "查看当前项目的只读 Harness 状态",       icon: "◎", group: "视图" },
     ],
     models: [],
     activity: [],
@@ -897,7 +898,11 @@
     newSession()       { _send({ type: "new_session" }); },
     exportHtml()       { _send({ type: "export_html" }); },
     refreshModels()    { _initFetch(); },
-    inspectHarness()   { return window.inspectHarnessForSession(window.__TAURI__, activeSessionId); },
+    inspectHarness(sessionId = activeSessionId) {
+      const requestedSessionId = sessionId || null;
+      if (requestedSessionId !== activeSessionId) return Promise.reject(new Error("HARNESS_SESSION_CHANGED"));
+      return window.inspectHarnessForSession(window.__TAURI__, requestedSessionId);
+    },
 
     // ── Login ─────────────────────────────────────────────────────────────────
 

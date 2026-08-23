@@ -67,3 +67,31 @@ test("exposes harness inspection through the live bridge without using agent com
   await expect(inspectHarness()).resolves.toEqual({ readOnly: true });
   expect(calls).toEqual([[undefined, null]]);
 });
+
+test("rejects a harness inspection explicitly bound to a stale renderer session", async () => {
+  const calls: unknown[] = [];
+  const browserWindow: Record<string, unknown> = {
+    timeNow: () => "00:00",
+    inspectHarnessForSession: async (...args: unknown[]) => {
+      calls.push(args);
+      return { readOnly: true };
+    }
+  };
+  const quietConsole = { log: () => undefined, warn: () => undefined, error: () => undefined };
+  new Function("window", "console", "setTimeout", "clearTimeout", readFileSync(livePath, "utf8"))(
+    browserWindow,
+    quietConsole,
+    setTimeout,
+    clearTimeout
+  );
+
+  const bridge = browserWindow.OMP_BRIDGE;
+  expect(typeof bridge).toBe("object");
+  if (typeof bridge !== "object" || bridge === null) return;
+  const inspectHarness = Reflect.get(bridge, "inspectHarness");
+  expect(typeof inspectHarness).toBe("function");
+  if (typeof inspectHarness !== "function") return;
+
+  await expect(inspectHarness("stale-session")).rejects.toThrow("HARNESS_SESSION_CHANGED");
+  expect(calls).toEqual([]);
+});
