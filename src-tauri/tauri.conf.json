@@ -4,6 +4,7 @@
   "version": "0.1.2",
   "identifier": "dev.ohMyPi.desktop",
   "build": {
+    "beforeBuildCommand": "npm run prepare:bundle",
     "frontendDist": "../src"
   },
   "app": {
