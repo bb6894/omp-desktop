@@ -76,6 +76,7 @@ function App() {
   const harnessRequestGeneration = React.useRef(0);
   const activeHarnessSessionIdRef = React.useRef(activeSessionId);
   activeHarnessSessionIdRef.current = activeSessionId;
+  const harnessMutationGeneration = React.useRef(0);
 
   const closeHarnessInspection = React.useCallback(() => {
     harnessRequestGeneration.current += 1;
@@ -206,6 +207,38 @@ function App() {
       if (isCurrentRequest()) setHarnessLoading(false);
     }
   }, [activeSessionId, bridge]);
+
+  // Human-governed Harness mutations — same stale guards as the inspection:
+  // a response that arrives after a tab switch or dialog close is discarded.
+  const runHarnessMutation = React.useCallback(async (methodName, args) => {
+    const requestGeneration = ++harnessMutationGeneration.current;
+    const requestedSessionId = activeHarnessSessionIdRef.current;
+    const isCurrentRequest = () => (
+      harnessMutationGeneration.current === requestGeneration
+      && activeHarnessSessionIdRef.current === requestedSessionId
+    );
+    try {
+      const value = await bridge?.[methodName](...args);
+      return isCurrentRequest() ? { ok: true, value } : { ok: false, stale: true };
+    } catch (err) {
+      if (!isCurrentRequest()) return { ok: false, stale: true };
+      const code = typeof err === "string" ? err : err?.message ?? "HARNESS_MUTATION_TRANSPORT_FAILED";
+      return { ok: false, error: code };
+    }
+  }, [bridge]);
+
+  const handleHarnessPreview = React.useCallback(
+    payload => runHarnessMutation("previewHarnessMemory", [payload]),
+    [runHarnessMutation]
+  );
+  const handleHarnessApply = React.useCallback(
+    (preview, approval) => runHarnessMutation("applyHarnessMemory", [preview, approval]),
+    [runHarnessMutation]
+  );
+  const handleHarnessRollback = React.useCallback(
+    reason => runHarnessMutation("rollbackHarness", [reason]),
+    [runHarnessMutation]
+  );
 
   const handleCommand = c => {
     if      (c.name === "plan")     { setPlanMode(true); planStartedRef.current = false; }
@@ -355,6 +388,12 @@ function App() {
         error={harnessError}
         onClose={closeHarnessInspection}
         onRefresh={loadHarnessInspection}
+        review={{
+          onPreview: handleHarnessPreview,
+          onApply: handleHarnessApply,
+          onRollback: handleHarnessRollback,
+          onRefresh: loadHarnessInspection
+        }}
       />
 
       {planOpen && (

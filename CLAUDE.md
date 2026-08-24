@@ -48,16 +48,19 @@ Three runtime layers:
 
 2. **Desktop Host (`apps/desktop-host/src/`)**
    - `contracts.ts` defines the closed local request/response DTO surface.
-   - `session-service.ts` dispatches allowlisted session, Agent, interaction, and
-     read-only Harness requests.
+   - `session-service.ts` dispatches allowlisted session, Agent, interaction,
+     read-only Harness inspection, and human-governed Harness mutation requests.
    - `agent-service.ts` and `rpc-bridge.ts` manage the official OMP RPC v2 path.
-   - `harness-store.ts` is read-only in the current release.
+   - `harness-store.ts` is the read-only view of Harness state.
+     `harness-mutation-service.ts` builds previews from Host-owned context and
+     `harness-mutation-executor.ts` is the sole filesystem writer for approvals.
    - `omp-vendor.ts` is the only production module that imports `@oh-my-pi/*`.
    - OMP package and Runtime versions remain pinned exactly to `17.4.1`.
 
 3. **Legacy no-bundler frontend (`src/`)**
    - `live.js` adapts Host events into per-tab renderer state.
-   - `app/harness-client.js` exposes the dedicated read-only Harness command.
+   - `app/harness-client.js` exposes the read-only Harness command and the
+     three explicit human-approval mutation commands.
    - `app-live.jsx` is the sole React root.
    - `src/design/**` is the authoritative live UI source.
    - `src/index.html` script order is the dependency graph.
@@ -69,6 +72,28 @@ verified OMP Runtime process tree for that tab. Source terminal sessions remain
 `history-readonly`; writable desktop work uses `desktop-owned` forks. Rust and
 the UI never parse or rewrite OMP's private session files.
 
+## Human-governed Harness review
+
+`harness.preview`, `harness.apply`, and `harness.rollback` are the only
+renderer-reachable Harness write surface:
+
+- The renderer sends only `operation/title/content` (+`targetId` for replace);
+  the Desktop Host derives `projectId`, `scope`, pinned compatibility,
+  timestamps, static evidence, and the replace target from its fixed cwd and
+  `HarnessStore.inspect()`. Renderer-supplied binding fields are rejected.
+- `harness.apply` requires the exact Host-built preview plus a non-blank
+  `{ approvedBy, reason }` from a human. The Host applies only previews from
+  its bounded issued-preview cache (`APPLY_PREVIEW_UNISSUED` otherwise) and
+  hands the cached original to `HarnessMutationExecutor`, the sole filesystem
+  writer; it snapshots before every apply and rejects blank, forged, stale,
+  policy-failing, or replayed requests with stable codes.
+- Tauri exposes exactly three explicit commands (`preview_harness_memory`,
+  `apply_harness_memory`, `rollback_harness`) that call `HostBridge::request`
+  directly — never `send_command`, `agent.command`, or the Runtime RPC path.
+- Approved proposals persist to local Harness state only. Source terminal
+  session files are never written, no system `omp` binary is involved, and
+  approved memories do not affect Runtime prompts (a later stage).
+
 ## Frontend load order (`src/index.html`)
 
 Script order **is** the dependency graph:
@@ -77,7 +102,7 @@ Script order **is** the dependency graph:
 2. Tweaks: `tweaks/style.js`, `tweaks/use-tweaks.js` (plain, IIFE) → `tweaks/panel.jsx`, `tweaks/controls.jsx` (Babel; controls depends on panel).
 3. UI primitives: `ui/icons.jsx` (defines `Icon`, `TOOL_META`) → `ui/sparks.jsx` → `ui/markdown.jsx` → `ui/plan-annotations.jsx`.
 4. Chat: `chat/user-bubble.jsx` → `chat/eval-cell.jsx` → `chat/assistant-bubble.jsx` → `chat/tool-card.jsx` → `chat/ask-bubble.jsx` → `chat/chat-view.jsx`.
-5. `design/composer.jsx`, `design/chrome.jsx`, `design/panels.jsx`, `design/harness/inspector.jsx`.
+5. `design/composer.jsx`, `design/chrome.jsx`, `design/panels.jsx`, `design/harness/proposal-review.jsx`, `design/harness/inspector.jsx`.
 6. Live data: `model-names.js` → `adapter.js` → `app/harness-client.js` → `live.js`.
 7. App helpers: `app/constants.js` (plain, IIFE) → `app/use-bridge-snapshot.jsx`.
 8. `app-live.jsx` last.

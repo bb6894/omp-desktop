@@ -9,6 +9,7 @@ import { decodeLocalFrames, encodeLocalFrame } from "../src/local-frame";
 import { OfficialOmpSessionAdapter, type OmpSessionAdapter } from "../src/omp-adapter";
 import { resolveProfilePaths } from "../src/profile-paths";
 import { SessionService, type AgentServiceApi } from "../src/session-service";
+import type { HarnessMutationApi, PreviewOutcome } from "../src/harness-mutation-contracts";
 
 test("reads terminal history without changing it and forks a desktop copy", async () => {
   const root = mkdtempSync(join(tmpdir(), "omp-desktop-session-test-"));
@@ -280,4 +281,100 @@ test("rejects undeclared top-level fields including renderer-supplied paths", as
     type: "toString",
     requestId: "closed-prototype"
   })).resolves.toMatchObject({ ok: false, code: "UNKNOWN_COMMAND" });
+});
+
+function recordingMutations(): { api: HarnessMutationApi; calls: Array<{ kind: string; payload: unknown }> } {
+  const calls: Array<{ kind: string; payload: unknown }> = [];
+  return {
+    api: {
+      preview: async (payload) => {
+        calls.push({ kind: "preview", payload });
+        return { status: "previewed", preview: { digest: { sha256: "ab" } } } as PreviewOutcome;
+      },
+      apply: async (payload) => {
+        calls.push({ kind: "apply", payload });
+        return { status: "rejected", code: "APPLY_APPROVAL_REQUIRED" };
+      },
+      rollback: async (payload) => {
+        calls.push({ kind: "rollback", payload });
+        return { status: "rejected", code: "ROLLBACK_NO_SNAPSHOT" };
+      }
+    },
+    calls
+  };
+}
+
+test("forwards harness mutation payloads with only the allowlisted fields", async () => {
+  const recorded = recordingMutations();
+  const service = new SessionService(fakeAdapter(), null, recorded.api);
+
+  await expect(service.dispatch({
+    type: "harness.preview",
+    requestId: "m1",
+    operation: "memory.add",
+    title: "T",
+    content: "C"
+  })).resolves.toMatchObject({ ok: true });
+  expect(recorded.calls[0]).toEqual({ kind: "preview", payload: { operation: "memory.add", title: "T", content: "C" } });
+
+  await expect(service.dispatch({
+    type: "harness.preview",
+    requestId: "m2",
+    operation: "memory.replace",
+    title: "T",
+    content: "C",
+    targetId: "memory-x"
+  })).resolves.toMatchObject({ ok: true });
+  expect(recorded.calls[1].payload).toEqual({ operation: "memory.replace", title: "T", content: "C", targetId: "memory-x" });
+
+  await expect(service.dispatch({
+    type: "harness.apply",
+    requestId: "m3",
+    preview: { forged: false },
+    approval: { approvedBy: "human-reviewer", reason: "r" }
+  })).resolves.toMatchObject({ ok: true, value: { status: "rejected", code: "APPLY_APPROVAL_REQUIRED" } });
+  expect(recorded.calls[2].payload).toEqual({ preview: { forged: false }, approval: { approvedBy: "human-reviewer", reason: "r" } });
+
+  await expect(service.dispatch({ type: "harness.rollback", requestId: "m4", reason: "revert it" })).resolves.toMatchObject({
+    ok: true,
+    value: { status: "rejected", code: "ROLLBACK_NO_SNAPSHOT" }
+  });
+  expect(recorded.calls[3]).toEqual({ kind: "rollback", payload: { reason: "revert it" } });
+
+  await expect(service.dispatch({
+    type: "harness.preview",
+    requestId: "m5",
+    operation: "memory.add",
+    title: "T",
+    content: "C",
+    cwd: "C:\\Users\\leaky\\path"
+  })).resolves.toMatchObject({ ok: false, code: "INVALID_REQUEST" });
+  expect(recorded.calls).toHaveLength(4);
+});
+
+test("maps mutation executor failures to stable codes without echoing messages", async () => {
+  const throwing = (message: string): HarnessMutationApi => ({
+    preview: async () => { throw new Error(message); },
+    apply: async () => { throw new Error(message); },
+    rollback: async () => { throw new Error(message); }
+  });
+  const known = new SessionService(fakeAdapter(), null, throwing("HARNESS_STATE_TOO_LARGE"));
+  await expect(known.dispatch({
+    type: "harness.preview",
+    requestId: "e1",
+    operation: "memory.add",
+    title: "T",
+    content: "C"
+  })).resolves.toMatchObject({ ok: false, code: "HARNESS_STATE_TOO_LARGE" });
+
+  const arbitrary = new SessionService(fakeAdapter(), null, throwing("arbitrary failure leak-title-marker"));
+  const response = await arbitrary.dispatch({
+    type: "harness.preview",
+    requestId: "e2",
+    operation: "memory.add",
+    title: "leak-title-marker",
+    content: "C"
+  });
+  expect(response).toMatchObject({ ok: false, code: "INTERNAL_ERROR" });
+  expect(JSON.stringify(response)).not.toContain("leak-title-marker");
 });

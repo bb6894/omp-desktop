@@ -35,6 +35,7 @@
 .harness-header p { max-width: 720px; margin: 0; color: var(--fg-3); font-size: var(--d-text-sm); }
 .harness-eyebrow { color: var(--accent); font-family: var(--font-mono); font-size: var(--d-text-xs); letter-spacing: 0.08em; text-transform: uppercase; }
 .harness-actions { display: flex; align-items: flex-start; gap: 8px; }
+.harness-mode-switch { display: inline-flex; gap: 4px; align-items: center; padding: 2px; border: 1px solid var(--line); border-radius: var(--r-1); }
 .harness-body { overflow: auto; padding: 18px 22px 24px; }
 
 .harness-meta-grid,

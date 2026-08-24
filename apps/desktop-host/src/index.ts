@@ -5,7 +5,9 @@ import { resolveProfilePaths, type ProfilePaths } from "./profile-paths";
 import { SessionService } from "./session-service";
 import { AgentService, defaultRuntimePath } from "./agent-service";
 import { FixtureAgentService } from "./fixture-agent-service";
-import { HarnessStore } from "./harness-store";
+import { defaultHarnessDataRoot, HarnessStore } from "./harness-store";
+import { HarnessMutationExecutor } from "./harness-mutation-executor";
+import { HarnessMutationService } from "./harness-mutation-service";
 
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
@@ -29,7 +31,10 @@ function optionValue(args: readonly string[], name: string): string | undefined 
 }
 
 export function createHostSessionService(cwd: string, paths: ProfilePaths): SessionService {
-  return new SessionService(new OfficialOmpSessionAdapter(cwd, paths), new HarnessStore(cwd));
+  const harnessDataRoot = defaultHarnessDataRoot();
+  const inspector = new HarnessStore(cwd, harnessDataRoot);
+  const mutations = new HarnessMutationService(cwd, inspector, new HarnessMutationExecutor(cwd, harnessDataRoot));
+  return new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations);
 }
 
 async function runHost(): Promise<void> {

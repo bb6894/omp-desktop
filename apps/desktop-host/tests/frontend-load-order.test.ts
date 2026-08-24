@@ -29,6 +29,7 @@ const expectedScripts = [
   "design/composer.jsx",
   "design/chrome.jsx",
   "design/panels.jsx",
+  "design/harness/proposal-review.jsx",
   "design/harness/inspector.jsx",
   "model-names.js",
   "adapter.js",

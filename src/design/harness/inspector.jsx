@@ -1,11 +1,15 @@
 /* ═════════════════════════════════════════════════════════════════════
-   harness/inspector.jsx — Stage 2 read-only Harness Inspector dialog.
+   harness/inspector.jsx — Stage 2 read-only Harness Inspector dialog
+   with the Stage 3C proposal-review mode.
 
    Renders the frozen OMP_BRIDGE.inspectHarness() DTO as escaped React
    text only. Harness strings are untrusted local data, so every value
-   goes through plain text interpolation. The dialog never writes
-   Harness state, activates entries, or spawns Agents.
+   goes through plain text interpolation. The browse mode never writes
+   Harness state; the explicit review mode delegates all writes to the
+   Host-governed preview/apply/rollback bridge methods.
    ═════════════════════════════════════════════════════════════════════ */
+
+const { ProposalReviewPanel } = window;
 
 const HARNESS_DISPLAY_LIMIT = 50;
 
@@ -93,9 +97,16 @@ function HarnessSection({ label, entries }) {
   );
 }
 
-function HarnessInspector({ open, inspection, loading, error, onClose, onRefresh }) {
+function HarnessInspector({ open, inspection, loading, error, onClose, onRefresh, review }) {
   const dialogRef = React.useRef(null);
   const previousFocusRef = React.useRef(null);
+  const [mode, setMode] = React.useState("browse");
+
+  React.useEffect(() => {
+    if (open) return undefined;
+    setMode("browse");
+    return undefined;
+  }, [open]);
 
   React.useEffect(() => {
     if (!open) return undefined;
@@ -167,11 +178,23 @@ function HarnessInspector({ open, inspection, loading, error, onClose, onRefresh
       >
         <header className="harness-header">
           <div>
-            <div className="harness-eyebrow" title="Stage 2 · Read-only">阶段 2 · 只读</div>
+            <div className="harness-eyebrow" title={mode === "review" ? "Stage 3C · Proposal review" : "Stage 2 · Read-only"}>
+              {mode === "review" ? "阶段 3 · 提案评审" : "阶段 2 · 只读"}
+            </div>
             <h2 id="harness-title">Harness 检查器</h2>
-            <p>查看当前项目的持久目标、记忆、技能和改进记录。此界面不会创建文件、启动 Agent 或激活任何条目。</p>
+            <p>{mode === "review"
+              ? "撰写记忆提案并生成 Host 预览；应用需要非空的批准人与理由，写入前会自动创建快照。"
+              : "查看当前项目的持久目标、记忆、技能和改进记录。此界面不会创建文件、启动 Agent 或激活任何条目。"}</p>
           </div>
           <div className="harness-actions">
+            {state && (
+              <div className="harness-mode-switch" role="tablist" aria-label="Harness 检查器模式">
+                <button className={`btn small${mode === "browse" ? " outlined" : " ghost"}`} type="button" role="tab"
+                  aria-selected={mode === "browse"} onClick={() => setMode("browse")}>只读浏览</button>
+                <button className={`btn small${mode === "review" ? " outlined" : " ghost"}`} type="button" role="tab"
+                  aria-selected={mode === "review"} onClick={() => setMode("review")}>提案评审</button>
+              </div>
+            )}
             <button className="btn outlined" type="button" onClick={onRefresh} disabled={loading}>刷新</button>
             <button className="btn icon ghost" type="button" onClick={onClose} title="关闭 Harness 检查器" aria-label="关闭 Harness 检查器">×</button>
           </div>
@@ -187,7 +210,11 @@ function HarnessInspector({ open, inspection, loading, error, onClose, onRefresh
             </div>
           )}
 
-          {!loading && !errorCopy && state && (
+          {!loading && !errorCopy && state && mode === "review" && (
+            <ProposalReviewPanel memories={state.memories} review={review} />
+          )}
+
+          {!loading && !errorCopy && state && mode === "browse" && (
             <>
               <div className="harness-meta-grid">
                 <div className="harness-meta-card">

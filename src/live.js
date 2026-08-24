@@ -903,6 +903,21 @@
       if (requestedSessionId !== activeSessionId) return Promise.reject(new Error("HARNESS_SESSION_CHANGED"));
       return window.inspectHarnessForSession(window.__TAURI__, requestedSessionId);
     },
+    previewHarnessMemory(payload, sessionId = activeSessionId) {
+      const requestedSessionId = sessionId || null;
+      if (requestedSessionId !== activeSessionId) return Promise.reject(new Error("HARNESS_SESSION_CHANGED"));
+      return window.previewHarnessMemoryForSession(window.__TAURI__, requestedSessionId, payload);
+    },
+    applyHarnessMemory(preview, approval, sessionId = activeSessionId) {
+      const requestedSessionId = sessionId || null;
+      if (requestedSessionId !== activeSessionId) return Promise.reject(new Error("HARNESS_SESSION_CHANGED"));
+      return window.applyHarnessMemoryForSession(window.__TAURI__, requestedSessionId, preview, approval);
+    },
+    rollbackHarness(reason, sessionId = activeSessionId) {
+      const requestedSessionId = sessionId || null;
+      if (requestedSessionId !== activeSessionId) return Promise.reject(new Error("HARNESS_SESSION_CHANGED"));
+      return window.rollbackHarnessForSession(window.__TAURI__, requestedSessionId, reason);
+    },
 
     // ── Login ─────────────────────────────────────────────────────────────────
 

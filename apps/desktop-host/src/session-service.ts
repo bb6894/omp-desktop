@@ -1,5 +1,6 @@
 import type { HostEvent, HostResponse } from "./contracts";
 import type { HarnessInspectorApi } from "./harness-contracts";
+import type { HarnessMutationApi } from "./harness-mutation-contracts";
 import type { OmpSessionAdapter } from "./omp-adapter";
 
 export type AgentServiceApi = {
@@ -26,6 +27,9 @@ const REQUEST_KEYS = {
   "session.messages": ["cursor", "limit", "requestId", "sessionId", "type"],
   "session.fork": ["requestId", "sessionId", "type"],
   "harness.inspect": ["requestId", "type"],
+  "harness.preview": ["requestId", "type", "operation", "title", "content", "targetId"],
+  "harness.apply": ["requestId", "type", "preview", "approval"],
+  "harness.rollback": ["requestId", "type", "reason"],
   "agent.start": ["prompt", "requestId", "sessionId", "type"],
   "agent.stop": ["requestId", "sessionId", "type"],
   "interaction.respond": ["interactionId", "requestId", "sessionId", "type", "value"],
@@ -35,6 +39,15 @@ const REQUEST_KEYS = {
 function hasOnlyKeys(input: Record<string, unknown>, allowed: readonly string[]): boolean {
   const allowedKeys = new Set(allowed);
   return Object.keys(input).every((key) => allowedKeys.has(key));
+}
+
+/** Copy only the allowlisted request fields into the payload handed to the mutation service. */
+function extractPayload(input: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  for (const field of fields) {
+    if (Object.hasOwn(input, field)) payload[field] = input[field];
+  }
+  return payload;
 }
 
 const KNOWN_ERRORS = new Set([
@@ -70,7 +83,8 @@ export class SessionService {
 
   constructor(
     private readonly sessions: OmpSessionAdapter,
-    private readonly harness: HarnessInspectorApi | null = null
+    private readonly harness: HarnessInspectorApi | null = null,
+    private readonly mutations: HarnessMutationApi | null = null
   ) {}
 
   setAgentService(agentService: AgentServiceApi): void {
@@ -118,6 +132,30 @@ export class SessionService {
         case "harness.inspect":
           if (!this.harness) return responseError(requestId, "HARNESS_UNAVAILABLE");
           return { type: "response", requestId, ok: true, value: await this.harness.inspect() };
+        case "harness.preview":
+          if (!this.mutations) return responseError(requestId, "HARNESS_MUTATION_UNAVAILABLE");
+          return {
+            type: "response",
+            requestId,
+            ok: true,
+            value: await this.mutations.preview(extractPayload(input, ["operation", "title", "content", "targetId"]))
+          };
+        case "harness.apply":
+          if (!this.mutations) return responseError(requestId, "HARNESS_MUTATION_UNAVAILABLE");
+          return {
+            type: "response",
+            requestId,
+            ok: true,
+            value: await this.mutations.apply(extractPayload(input, ["preview", "approval"]))
+          };
+        case "harness.rollback":
+          if (!this.mutations) return responseError(requestId, "HARNESS_MUTATION_UNAVAILABLE");
+          return {
+            type: "response",
+            requestId,
+            ok: true,
+            value: await this.mutations.rollback(extractPayload(input, ["reason"]))
+          };
         case "agent.start":
           if (!this.agentService || typeof input.sessionId !== "string" || typeof input.prompt !== "string") {
             return responseError(requestId, "INVALID_REQUEST");

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Added the Stage 3C human-governed Harness review flow in the desktop UI: author a project-scoped memory proposal, inspect the Host-built preview, then apply it with an explicit approver name and reason (an automatic pre-write snapshot makes every apply reversible) or roll back to the latest snapshot. Approved proposals persist in Harness state only — they do not affect Runtime prompts yet — and global scope remains unsupported.
 - Added the Stage 2 read-only Harness Inspector path from the renderer bridge through Tauri to the compiled Host. Harness state lives outside OMP session files and is rejected when malformed, incompatible, oversized, project-mismatched, schema-invalid, or secret-bearing.
 - Added a Chinese-first, read-only Harness Inspector dialog with project compatibility, collection counts, bounded entry previews, explicit empty/error states, and session-bound async results.
 

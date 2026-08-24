@@ -184,6 +184,84 @@ fn inspect_harness(
     bridge.request(&session_id, request_type, args)
 }
 
+/// Fixed wire shape for the human-governed preview request. The renderer
+/// supplies only operation/title/content (+ targetId for replace); project
+/// binding, scope, compatibility, timestamps, and evidence are derived by the
+/// Desktop Host.
+fn harness_preview_request(
+    operation: &str,
+    title: &str,
+    content: &str,
+    target_id: Option<&str>,
+) -> (&'static str, serde_json::Value) {
+    let args = match target_id {
+        Some(target) => serde_json::json!({
+            "operation": operation,
+            "title": title,
+            "content": content,
+            "targetId": target
+        }),
+        None => serde_json::json!({ "operation": operation, "title": title, "content": content }),
+    };
+    ("harness.preview", args)
+}
+
+#[tauri::command]
+fn preview_harness_memory(
+    session_id: String,
+    operation: String,
+    title: String,
+    content: String,
+    target_id: Option<String>,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    let (request_type, args) =
+        harness_preview_request(&operation, &title, &content, target_id.as_deref());
+    bridge.request(&session_id, request_type, args)
+}
+
+/// The exact Host-built preview travels back unchanged next to an explicit
+/// approval object; no project context is accepted or re-derived here.
+fn harness_apply_request(
+    preview: serde_json::Value,
+    approved_by: &str,
+    reason: &str,
+) -> (&'static str, serde_json::Value) {
+    (
+        "harness.apply",
+        serde_json::json!({
+            "preview": preview,
+            "approval": { "approvedBy": approved_by, "reason": reason }
+        }),
+    )
+}
+
+#[tauri::command]
+fn apply_harness_memory(
+    session_id: String,
+    preview: serde_json::Value,
+    approved_by: String,
+    reason: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    let (request_type, args) = harness_apply_request(preview, &approved_by, &reason);
+    bridge.request(&session_id, request_type, args)
+}
+
+fn harness_rollback_request(reason: &str) -> (&'static str, serde_json::Value) {
+    ("harness.rollback", serde_json::json!({ "reason": reason }))
+}
+
+#[tauri::command]
+fn rollback_harness(
+    session_id: String,
+    reason: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    let (request_type, args) = harness_rollback_request(&reason);
+    bridge.request(&session_id, request_type, args)
+}
+
 /// Run the Tauri application. Panics if the runtime fails to initialise.
 ///
 /// # Panics
@@ -205,6 +283,9 @@ pub fn run() {
             load_session_messages,
             fork_session,
             inspect_harness,
+            preview_harness_memory,
+            apply_harness_memory,
+            rollback_harness,
             open_project,
             start_git_watch,
             stop_git_watch,
@@ -234,12 +315,62 @@ pub fn run() {
 
 #[cfg(test)]
 mod harness_command_tests {
-    use super::harness_inspection_request;
+    use super::{
+        harness_apply_request, harness_inspection_request, harness_preview_request,
+        harness_rollback_request,
+    };
 
     #[test]
     fn exposes_a_dedicated_read_only_harness_command() {
         let (request_type, args) = harness_inspection_request();
         assert_eq!(request_type, "harness.inspect");
         assert_eq!(args, serde_json::json!({}));
+    }
+
+    #[test]
+    fn preview_request_carries_only_the_minimal_fields() {
+        let (request_type, replace) =
+            harness_preview_request("memory.replace", "T", "C", Some("memory-existing"));
+        assert_eq!(request_type, "harness.preview");
+        assert_eq!(
+            replace,
+            serde_json::json!({
+                "operation": "memory.replace",
+                "title": "T",
+                "content": "C",
+                "targetId": "memory-existing"
+            })
+        );
+        let (_, add) = harness_preview_request("memory.add", "T", "C", None);
+        assert_eq!(
+            add,
+            serde_json::json!({ "operation": "memory.add", "title": "T", "content": "C" })
+        );
+    }
+
+    #[test]
+    fn apply_request_wraps_an_explicit_approval_without_context_fields() {
+        let preview =
+            serde_json::json!({ "operation": "memory.add", "digest": { "sha256": "ab" } });
+        let (request_type, args) =
+            harness_apply_request(preview, "human-reviewer", "Approved after review");
+        assert_eq!(request_type, "harness.apply");
+        assert_eq!(
+            args,
+            serde_json::json!({
+                "preview": { "operation": "memory.add", "digest": { "sha256": "ab" } },
+                "approval": { "approvedBy": "human-reviewer", "reason": "Approved after review" }
+            })
+        );
+    }
+
+    #[test]
+    fn rollback_request_carries_only_the_reason() {
+        let (request_type, args) = harness_rollback_request("user requested revert");
+        assert_eq!(request_type, "harness.rollback");
+        assert_eq!(
+            args,
+            serde_json::json!({ "reason": "user requested revert" })
+        );
     }
 }
