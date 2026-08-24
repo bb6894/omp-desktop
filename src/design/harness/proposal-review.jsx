@@ -70,12 +70,17 @@ function isApplyReady(previewOutcome, approval) {
     && typeof approval?.reason === "string" && approval.reason.trim().length > 0;
 }
 
+function buildApproval(approvedBy, approvalReason) {
+  return { approvedBy: approvedBy.trim(), reason: approvalReason.trim() };
+}
+
 function outcomeErrorCopy(code, copyTable) {
   return copyTable[code] ?? "操作被拒绝，请查看错误代码。";
 }
 
 window.HARNESS_REVIEW_RULES = {
   buildPreviewPayload,
+  buildApproval,
   isApplyReady,
   previewErrorCopy: (code) => outcomeErrorCopy(code, HARNESS_PREVIEW_ERROR_COPY),
   applyErrorCopy: (code) => outcomeErrorCopy(code, HARNESS_APPLY_ERROR_COPY),
@@ -133,12 +138,12 @@ function ProposalReviewPanel({ memories, review }) {
   const rules = window.HARNESS_REVIEW_RULES;
   const activeMemories = (memories ?? []).filter(entry => entry.status === "active");
   const preview = previewOutcome?.status === "previewed" ? previewOutcome.preview : null;
-  const applyReady = isApplyReady(previewOutcome, { approvedBy, approvalReason });
+  const applyReady = isApplyReady(previewOutcome, { approvedBy, reason: approvalReason });
 
   const resetProposal = () => {
     setTitle(""); setContent(""); setTargetId("");
     setPreviewOutcome(null); setConfirmingApply(false);
-    setApprovedBy(""); setApprovalReason(""); setApplyResult(null);
+    setApprovedBy(""); setApprovalReason("");
   };
 
   const handleGeneratePreview = async () => {
@@ -161,7 +166,7 @@ function ProposalReviewPanel({ memories, review }) {
   const handleApply = async () => {
     if (!applyReady || !preview || applyBusy) return;
     setApplyBusy(true);
-    const outcome = await review.onApply(preview, { approvedBy: approvedBy.trim(), reason: approvalReason.trim() });
+    const outcome = await review.onApply(preview, buildApproval(approvedBy, approvalReason));
     setApplyBusy(false);
     setConfirmingApply(false);
     if (outcome.stale) return;

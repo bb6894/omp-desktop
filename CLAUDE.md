@@ -8,6 +8,24 @@ Rust does not spawn `omp` directly. Rust starts one verified Bun-compiled
 Desktop Host per UI tab; that Host owns the pinned OMP Runtime 17.4.1 process
 tree and speaks the bounded local framed protocol to Rust.
 
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs are tracked in `bb6894/omp-desktop` on GitHub. See
+`docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five canonical labels: `needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, and `wontfix`. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repository uses a single-context layout with `CONTEXT.md` and
+`docs/adr/` at the repository root. See `docs/agents/domain.md`.
+
 ## Commands
 
 | Task | Command |

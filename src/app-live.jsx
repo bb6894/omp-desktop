@@ -189,7 +189,6 @@ function App() {
 
     setHarnessOwnerSessionId(requestedSessionId);
     setHarnessOpen(true);
-    setHarnessInspection(null);
     setHarnessLoading(true);
     setHarnessError(null);
     try {

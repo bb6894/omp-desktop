@@ -210,7 +210,7 @@ function HarnessInspector({ open, inspection, loading, error, onClose, onRefresh
             </div>
           )}
 
-          {!loading && !errorCopy && state && mode === "review" && (
+          {!errorCopy && state && mode === "review" && (
             <ProposalReviewPanel memories={state.memories} review={review} />
           )}
 

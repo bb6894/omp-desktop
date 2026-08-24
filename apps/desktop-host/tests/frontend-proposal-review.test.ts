@@ -44,6 +44,7 @@ test("the review payload builder never emits host-derived context fields", () =>
 
 type ReviewRules = {
   buildPreviewPayload(draft: unknown): Record<string, unknown> | null;
+  buildApproval(approvedBy: string, approvalReason: string): { approvedBy: string; reason: string };
   isApplyReady(previewOutcome: unknown, approval: unknown): boolean;
 };
 
@@ -100,4 +101,27 @@ test("apply gating requires a live preview and two non-blank approval fields", (
   expect(rules.isApplyReady(previewed, { approvedBy: "", reason: "r" })).toBe(false);
   expect(rules.isApplyReady(previewed, { approvedBy: "u", reason: " \t " })).toBe(false);
   expect(rules.isApplyReady(previewed, { approvedBy: "u", reason: "r" })).toBe(true);
+});
+
+test("apply approval wire payload uses the Host contract reason field", () => {
+  const rules = loadReviewModule();
+
+  expect(rules.buildApproval("  本人 ", "  Stage 3C 功能验收 "))
+    .toEqual({ approvedBy: "本人", reason: "Stage 3C 功能验收" });
+});
+
+test("apply readiness uses the same reason field as the wire payload", () => {
+  const rules = loadReviewModule();
+
+  expect(rules.isApplyReady({ status: "previewed", preview: {} }, { approvedBy: "本人", reason: "验收" })).toBe(true);
+  expect(rules.isApplyReady({ status: "previewed", preview: {} }, { approvedBy: "本人", approvalReason: "验收" })).toBe(false);
+});
+
+test("mutation result UI survives the refresh that follows a successful write", () => {
+  const reviewSource = readFileSync(reviewPath, "utf8");
+  const inspectorSource = readFileSync(inspectorPath, "utf8");
+
+  expect(reviewSource).not.toContain("setApprovedBy(\"\"); setApprovalReason(\"\"); setApplyResult(null);");
+  expect(inspectorSource).toContain("!errorCopy && state && mode === \"review\"");
+  expect(inspectorSource).not.toContain("!loading && !errorCopy && state && mode === \"review\"");
 });

@@ -785,7 +785,9 @@
       streamingBubble = null;
       state.messages = state.messages.filter(m => !m.streaming);
     }
-    state.thinkingLevel = rpcState.thinkingLevel ?? "auto";
+    // Display-only sentinel: never sent back over RPC. null renders as the
+    // UI's empty thinking chip until omp returns a real level.
+    state.thinkingLevel = rpcState.thinkingLevel ?? null;
 
     if (rpcState.model) {
       state.model = {
