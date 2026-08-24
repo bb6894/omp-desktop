@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Localized the tuning panel labels and option descriptions without changing their persisted values or behavior.
 - Configured the NSIS installer to use Simplified Chinese on Windows.
 - Windows bundles now rebuild and smoke-test the compiled Desktop Host, verify the pinned official OMP Runtime, and record the exact packaged hashes before producing MSI or NSIS installers.
+- `runtime:fetch` now downloads the pinned OMP Runtime binary from this repository's own `runtime-v17.4.1` release instead of the third-party upstream release, so fresh clones and the release pipeline no longer depend on `can1357/oh-my-pi` staying public. Pinned SHA-256, file name, and hash verification are unchanged.
 
 ### Fixed
 

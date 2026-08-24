@@ -7,7 +7,7 @@ test("pins the verified OMP runtime combination", () => {
   expect(RUNTIME_MANIFEST.nativePackage).toBe("@oh-my-pi/pi-natives-win32-x64@17.4.1");
   expect(RUNTIME_MANIFEST.fileName).toBe("omp-windows-x64.exe");
   expect(RUNTIME_MANIFEST.sourceUrl).toBe(
-    "https://github.com/can1357/oh-my-pi/releases/download/v17.4.1/omp-windows-x64.exe"
+    "https://github.com/bb6894/omp-desktop/releases/download/runtime-v17.4.1/omp-windows-x64.exe"
   );
   expect(RUNTIME_MANIFEST.sha256).toBe(
     "0df097cc7af44247d33bae32d2e5e5baf2911ef7888ca5583e83fdab59db7a25"
