@@ -5,9 +5,11 @@ import { resolveProfilePaths, type ProfilePaths } from "./profile-paths";
 import { SessionService } from "./session-service";
 import { AgentService, defaultRuntimePath } from "./agent-service";
 import { FixtureAgentService } from "./fixture-agent-service";
-import { defaultHarnessDataRoot, HarnessStore } from "./harness-store";
+import { defaultHarnessDataRoot, harnessProjectId, HarnessStore } from "./harness-store";
 import { HarnessMutationExecutor } from "./harness-mutation-executor";
 import { HarnessMutationService } from "./harness-mutation-service";
+import { join } from "node:path";
+import { TaskMetadataStore } from "./task-metadata-store";
 
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
@@ -34,7 +36,10 @@ export function createHostSessionService(cwd: string, paths: ProfilePaths): Sess
   const harnessDataRoot = defaultHarnessDataRoot();
   const inspector = new HarnessStore(cwd, harnessDataRoot);
   const mutations = new HarnessMutationService(cwd, inspector, new HarnessMutationExecutor(cwd, harnessDataRoot));
-  return new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations);
+  const taskMetadata = new TaskMetadataStore(
+    join(harnessDataRoot, "OMP Desktop", "tasks", "projects", harnessProjectId(cwd), "task-metadata.json")
+  );
+  return new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations, taskMetadata);
 }
 
 async function runHost(): Promise<void> {

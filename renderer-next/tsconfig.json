@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    // No rootDir: sources intentionally span this tree and the Host tree via the
+    "paths": {
+      "@fixture-vectors": ["../apps/desktop-host/tests/fixtures/task-projection-vectors.ts"],
+      "@omp/product-contracts": ["../apps/desktop-host/src/product-contracts.ts"]
+    }
+  },
+  "include": ["src", "tests", "vite.config.ts"]
+}

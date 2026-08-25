@@ -15,7 +15,12 @@
     "verify": "bun tools/verify.ts",
     "runtime:fetch": "bun tools/fetch-runtime.ts",
     "prepare:bundle": "bun tools/prepare-bundle.ts",
-    "verify:bundle": "npm run verify && npm run build"
+    "verify:bundle": "npm run verify && npm run build",
+    "next:install": "bun install --cwd renderer-next --frozen-lockfile",
+    "next:dev": "bun run --cwd renderer-next dev",
+    "next:build": "bun run --cwd renderer-next build",
+    "next:typecheck": "bun run --cwd renderer-next typecheck",
+    "next:test": "bun run --cwd renderer-next test"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

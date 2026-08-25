@@ -2,12 +2,19 @@ import type { HostEvent, HostResponse } from "./contracts";
 import type { HarnessInspectorApi } from "./harness-contracts";
 import type { HarnessMutationApi } from "./harness-mutation-contracts";
 import type { OmpSessionAdapter } from "./omp-adapter";
+import { isValidIsoTimestamp, parseSessionId, type TaskMetadataIndex, type TaskMetadataRecord } from "./product-contracts";
 
 export type AgentServiceApi = {
   start(sessionId: string, prompt: string): Promise<unknown>;
   stop(sessionId: string): Promise<unknown>;
   respond(sessionId: string, interactionId: string, value: unknown): Promise<unknown>;
   command(sessionId: string, command: Record<string, unknown>): Promise<unknown>;
+};
+
+/** Storage seam for task organization metadata; injected once per Host process. */
+export type TaskMetadataStoreApi = {
+  get(): Promise<TaskMetadataIndex>;
+  set(sessionId: string, patch: Partial<TaskMetadataRecord>): Promise<TaskMetadataRecord>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -33,7 +40,9 @@ const REQUEST_KEYS = {
   "agent.start": ["prompt", "requestId", "sessionId", "type"],
   "agent.stop": ["requestId", "sessionId", "type"],
   "interaction.respond": ["interactionId", "requestId", "sessionId", "type", "value"],
-  "agent.command": ["command", "requestId", "sessionId", "type"]
+  "agent.command": ["command", "requestId", "sessionId", "type"],
+  "task.metadata.get": ["requestId", "type"],
+  "task.metadata.set": ["patch", "requestId", "sessionId", "type"]
 } as const;
 
 function hasOnlyKeys(input: Record<string, unknown>, allowed: readonly string[]): boolean {
@@ -41,13 +50,39 @@ function hasOnlyKeys(input: Record<string, unknown>, allowed: readonly string[])
   return Object.keys(input).every((key) => allowedKeys.has(key));
 }
 
-/** Copy only the allowlisted request fields into the payload handed to the mutation service. */
 function extractPayload(input: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
   for (const field of fields) {
     if (Object.hasOwn(input, field)) payload[field] = input[field];
   }
   return payload;
+}
+
+const METADATA_PATCH_FIELDS = ["completed", "pinned", "lastViewedAt"] as const;
+
+/** ≥1 known field, only known fields, values validated — merges are partial by design. */
+function validateMetadataPatch(
+  input: unknown
+): { ok: true; value: Partial<TaskMetadataRecord> } | { ok: false; code: string } {
+  if (!isRecord(input)) return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+  const keys = Object.keys(input);
+  if (keys.length === 0 || !keys.every((key) => (METADATA_PATCH_FIELDS as readonly string[]).includes(key))) {
+    return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+  }
+  const patch: Partial<TaskMetadataRecord> = {};
+  for (const key of keys) {
+    const value = input[key];
+    if (key === "completed" || key === "pinned") {
+      if (typeof value !== "boolean") return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+      patch[key] = value;
+    } else {
+      if (value !== null && !isValidIsoTimestamp(value)) {
+        return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+      }
+      patch.lastViewedAt = value;
+    }
+  }
+  return { ok: true, value: patch };
 }
 
 const KNOWN_ERRORS = new Set([
@@ -67,7 +102,10 @@ const KNOWN_ERRORS = new Set([
   "HARNESS_STATE_INVALID",
   "HARNESS_STATE_TOO_LARGE",
   "HARNESS_STATE_LIMIT_EXCEEDED",
-  "HARNESS_SECRET_DETECTED"
+  "HARNESS_SECRET_DETECTED",
+  "TASK_METADATA_STORE_UNAVAILABLE",
+  "TASK_METADATA_INDEX_TOO_LARGE",
+  "TASK_METADATA_LOCK_TIMEOUT"
 ]);
 
 function knownError(error: unknown): string | null {
@@ -84,7 +122,8 @@ export class SessionService {
   constructor(
     private readonly sessions: OmpSessionAdapter,
     private readonly harness: HarnessInspectorApi | null = null,
-    private readonly mutations: HarnessMutationApi | null = null
+    private readonly mutations: HarnessMutationApi | null = null,
+    private readonly taskMetadata: TaskMetadataStoreApi | null = null
   ) {}
 
   setAgentService(agentService: AgentServiceApi): void {
@@ -185,6 +224,27 @@ export class SessionService {
             ok: true,
             value: await this.agentService.command(input.sessionId, input.command)
           };
+        case "task.metadata.get":
+          if (!this.taskMetadata) return responseError(requestId, "TASK_METADATA_STORE_UNAVAILABLE");
+          return {
+            type: "response",
+            requestId,
+            ok: true,
+            value: { index: await this.taskMetadata.get() }
+          };
+        case "task.metadata.set": {
+          if (!this.taskMetadata) return responseError(requestId, "TASK_METADATA_STORE_UNAVAILABLE");
+          const sessionId = parseSessionId(input.sessionId);
+          if (!sessionId.ok) return responseError(requestId, "TASK_METADATA_INVALID_SESSION_ID");
+          const patch = validateMetadataPatch(input.patch);
+          if (!patch.ok) return responseError(requestId, patch.code);
+          return {
+            type: "response",
+            requestId,
+            ok: true,
+            value: { record: await this.taskMetadata.set(sessionId.value, patch.value) }
+          };
+        }
         default:
           return responseError(requestId, "UNKNOWN_COMMAND");
       }

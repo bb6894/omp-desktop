@@ -1,0 +1,265 @@
+/* OMP Desktop — renderer-next visual tokens and three-region shell.
+   Quiet professional OMP: neutral surfaces, restrained borders, OMP green only
+   for active/success, restrained coral for attention. Light/dark via
+   prefers-color-scheme. No gradients, no ornament. */
+
+:root {
+  --surface-0: #f7f7f5;
+  --surface-1: #ffffff;
+  --surface-2: #efefec;
+  --border: #dcdcd8;
+  --text-1: #1c1c1a;
+  --text-2: #6b6b66;
+  --accent: #2f7d4f;
+  --accent-soft: rgba(47, 125, 79, 0.12);
+  --attention: #c4553d;
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --font-ui:
+    "Segoe UI", "Microsoft YaHei UI", "PingFang SC", system-ui, -apple-system,
+    sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-0: #161615;
+    --surface-1: #1f1f1e;
+    --surface-2: #262625;
+    --border: #383836;
+    --text-1: #ececea;
+    --text-2: #9a9a94;
+    --accent: #58b57e;
+    --accent-soft: rgba(88, 181, 126, 0.14);
+    --attention: #e07a5f;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-1);
+  background: var(--surface-0);
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr) 320px;
+  height: 100%;
+}
+
+.workbench--loading {
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+}
+
+/* ---------- left rail ---------- */
+
+.left-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 12px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+.left-rail__brand {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.left-rail__group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.left-rail__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.left-rail__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.left-rail__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.left-rail__item:hover {
+  background: var(--surface-2);
+}
+
+.left-rail__item--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.left-rail__marker {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+
+.left-rail__empty {
+  padding: 4px 10px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+/* ---------- center empty state ---------- */
+
+.center-empty {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.center-empty__inner {
+  max-width: 360px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.center-empty__title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.center-empty__hint {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.center-empty__actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ---------- buttons ---------- */
+
+.button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface-1);
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.button--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ---------- right panel ---------- */
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-left: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+.right-panel__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.right-panel__placeholder {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.right-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.right-panel__task-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.right-panel__meta {
+  display: flex;
+  gap: 24px;
+}
+
+.right-panel__meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.right-panel__meta dt {
+  font-size: 12px;
+  color: var(--text-2);
+}

@@ -83,6 +83,15 @@ Three runtime layers:
    - `src/design/**` is the authoritative live UI source.
    - `src/index.html` script order is the dependency graph.
 
+4. **Next renderer scaffold (`renderer-next/`)** — branch-only, not shipped
+   - Vite + React + TypeScript workbench shell consuming typed product DTOs
+     (`apps/desktop-host/src/product-contracts.ts`) through the swappable
+     `ProductBridge` seam; plan 1 ships only the fixture transport built from
+     the frozen projection vectors.
+   - Bun-managed exclusively (`renderer-next/bun.lock` committed); installs go
+     through `npm run next:install` (`--frozen-lockfile`). The shipping entry
+     stays `src/index.html` until the plan-4 cutover switches it.
+
 ## Session model
 
 One UI tab owns one Rust `HostBridge` child. The compiled Desktop Host owns the

@@ -17,7 +17,9 @@ const topLevelOperations = [
   "agent.start",
   "agent.stop",
   "interaction.respond",
-  "agent.command"
+  "agent.command",
+  "task.metadata.get",
+  "task.metadata.set"
 ] as const;
 
 function requestKeyNames(source: string): string[] {

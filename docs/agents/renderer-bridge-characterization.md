@@ -72,6 +72,8 @@ Rust request helpers or the local Host protocol:
 | `agent.stop` | `sessionId` | stops the Host Agent service |
 | `interaction.respond` | session, interaction id, value | answers a pending interaction |
 | `agent.command` | session + closed nested command object | only the separately allowlisted Runtime command types |
+| `task.metadata.get` | `{ requestId, type }` | whole `TaskMetadataIndex` or stable `TASK_METADATA_*` code |
+| `task.metadata.set` | `sessionId`, partial patch (`completed` / `pinned` / `lastViewedAt`, ≥1 known field) | merged `TaskMetadataRecord` or stable code (`INVALID_SESSION_ID`, `LOCK_TIMEOUT`, …) |
 
 Unknown top-level names, malformed shapes, extra fields, and duplicate request
 ids fail closed. The nested `agent.command` names are not part of this table's
