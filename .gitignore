@@ -6,6 +6,9 @@
 node_modules/
 artifacts/
 
+# ── renderer-next (shipping renderer; dist is build output) ─────────────────
+renderer-next/dist/
+
 # ── Local overrides ───────────────────────────────────────────────────────────
 *.local
 .env

@@ -19,63 +19,78 @@ write({ type: "agent.start", requestId: "start", sessionId: "fixture", prompt: "
 
 let sentResponse = false;
 let sentStop = false;
-const deadline = Date.now() + 10_000;
-for await (const chunk of child.stdout) {
-  frames.push(...decoder.push(chunk));
-  const interaction = frames.some((frame) => {
-    const payload = (frame as { payload?: { type?: string; id?: string } }).payload;
-    return payload?.type === "extension_ui_request" && payload.id === "fixture-choice";
-  });
-  const completed = frames.some((frame) => (frame as { payload?: { state?: string } }).payload?.state === "completed");
-  const interrupted = frames.some((frame) => (frame as { payload?: { state?: string } }).payload?.state === "interrupted");
-  if (interaction && !sentResponse) {
-    sentResponse = true;
-    write({
-      type: "interaction.respond",
-      requestId: "answer",
-      sessionId: "fixture",
-      interactionId: "fixture-choice",
-      value: "continue"
-    });
+let done = false;
+const pump = (async () => {
+  for await (const chunk of child.stdout) {
+    frames.push(...decoder.push(chunk));
+    const timeline = frames.filter(
+      (frame) => (frame as { name?: string }).name === "timeline"
+    );
+    const hasKind = (kind: string) =>
+      timeline.some((frame) => (frame as { payload?: { kind?: string } }).payload?.kind === kind);
+    const stateSeen = (state: string) =>
+      timeline.some(
+        (frame) =>
+          (frame as { payload?: { kind?: string; state?: string } }).payload?.kind ===
+            "run.state" && (frame as { payload?: { state?: string } }).payload?.state === state
+      );
+    if (hasKind("interaction.requested") && !sentResponse) {
+      sentResponse = true;
+      // P1 wire contract: answers merge TOP-LEVEL fields onto extension_ui_response.
+      write({
+        type: "interaction.respond",
+        requestId: "answer",
+        sessionId: "fixture",
+        interactionId: "fixture-choice",
+        response: { value: "continue" }
+      });
+    }
+    if (stateSeen("completed") && !sentStop) {
+      sentStop = true;
+      write({ type: "agent.stop", requestId: "stop", sessionId: "fixture" });
+    }
+    const stopResponse = frames.some((frame) => (
+      frame as { type?: string; requestId?: string; ok?: boolean }
+    ).type === "response" && (frame as { requestId?: string }).requestId === "stop" && (frame as { ok?: boolean }).ok === true);
+    if (stateSeen("interrupted") && stopResponse) {
+      done = true;
+      break;
+    }
   }
-  if (completed && !sentStop) {
-    sentStop = true;
-    write({ type: "agent.stop", requestId: "stop", sessionId: "fixture" });
-  }
-  const stopResponse = frames.some((frame) => (
-    frame as { type?: string; requestId?: string; ok?: boolean }
-  ).type === "response" && (frame as { requestId?: string }).requestId === "stop" && (frame as { ok?: boolean }).ok === true);
-  if ((interrupted && stopResponse) || Date.now() > deadline) break;
-}
+})();
+
+// Hang-proof: even with zero inbound frames the pump must not block forever.
+await Promise.race([pump, Bun.sleep(20_000)]);
+if (!done && pump.isStarted && !pump.isCompleted) console.error("[smoke] deadline reached before lifecycle completed");
 child.kill();
 await child.exited;
 decoder.finish();
 rmSync(profile, { recursive: true, force: true });
 
-const names = frames.map((frame) => (frame as { name?: string }).name);
-const stateEvents = frames
-  .filter((frame) => (frame as { name?: string }).name === "agent.state")
-  .map((frame) => (frame as { payload?: { state?: string } }).payload?.state);
-const runtimeTypes = frames
-  .filter((frame) => (frame as { name?: string }).name === "runtime.frame")
-  .map((frame) => (frame as { payload?: { type?: string } }).payload?.type);
+const timelineEvents = frames
+  .filter((frame) => (frame as { name?: string }).name === "timeline")
+  .map((frame) => (frame as { payload?: { kind?: string; state?: string } }).payload ?? {});
+const kinds = timelineEvents.map((payload) => payload.kind);
+const stateEvents = timelineEvents
+  .filter((payload) => payload.kind === "run.state")
+  .map((payload) => payload.state);
 const responses = new Map(
   frames
     .filter((frame) => (frame as { type?: string }).type === "response")
     .map((frame) => [(frame as { requestId?: string }).requestId, frame as { ok?: boolean }])
 );
 const requiredStates = ["starting", "streaming", "awaiting-tool", "awaiting-interaction", "completed", "stopping", "interrupted"];
-const requiredRuntimeTypes = ["message_update", "tool_execution_start", "tool_execution_end", "extension_ui_request", "turn_end", "agent_end"];
+const requiredKinds = ["run.state", "message.added", "message.delta", "tool.started", "tool.finished", "interaction.requested"];
 if (
   !requiredStates.every((state) => stateEvents.includes(state)) ||
-  !requiredRuntimeTypes.every((type) => runtimeTypes.includes(type)) ||
+  !requiredKinds.every((kind) => kinds.includes(kind)) ||
   !["start", "answer", "stop"].every((requestId) => responses.get(requestId)?.ok === true)
 ) {
-  throw new Error(`fixture lifecycle failed: names=${names.join(",")} states=${stateEvents.join(",")} frames=${runtimeTypes.join(",")}`);
+  throw new Error(`fixture lifecycle failed: states=${stateEvents.join(",")} kinds=${kinds.join(",")}`);
 }
 console.log(JSON.stringify({
   fixtureLifecycleOk: true,
   states: stateEvents,
-  runtimeTypes,
+  kinds,
   responses: ["start", "answer", "stop"].map((requestId) => ({ requestId, ok: responses.get(requestId)?.ok === true }))
 }));

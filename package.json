@@ -1,7 +1,7 @@
 {
   "name": "omp-desktop",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.4",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
@@ -10,12 +10,17 @@
     "host:test": "bun test apps/desktop-host/tests",
     "host:build": "bun run tools/build-host.ts",
     "host:smoke:fixture": "bun tools/smoke-host-fixture.ts artifacts/omp-desktop-host.exe",
-    "frontend:check": "bun test apps/desktop-host/tests/frontend-load-order.test.ts apps/desktop-host/tests/frontend-harness-client.test.ts",
+    "frontend:check": "npm run next:typecheck && npm run next:test",
     "architecture:test": "bun test apps/desktop-host/tests/vendor-boundary.test.ts apps/desktop-host/tests/tauri-command-surface.test.ts",
     "verify": "bun tools/verify.ts",
     "runtime:fetch": "bun tools/fetch-runtime.ts",
     "prepare:bundle": "bun tools/prepare-bundle.ts",
-    "verify:bundle": "npm run verify && npm run build"
+    "verify:bundle": "npm run verify && npm run build",
+    "next:install": "bun install --cwd renderer-next --frozen-lockfile",
+    "next:dev": "bun run --cwd renderer-next dev",
+    "next:build": "bun run --cwd renderer-next build",
+    "next:typecheck": "bun run --cwd renderer-next typecheck",
+    "next:test": "bun run --cwd renderer-next test"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

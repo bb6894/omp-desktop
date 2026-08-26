@@ -6,7 +6,7 @@ on:
     paths:
       - 'apps/desktop-host/**'
       - 'src-tauri/**'
-      - 'src/**'
+      - 'renderer-next/**'
       - 'tools/**'
       - 'package.json'
       - 'package-lock.json'
@@ -52,8 +52,15 @@ jobs:
       - name: Install Host dependencies
         run: bun install --cwd apps/desktop-host --frozen-lockfile
 
+      - name: Install Renderer dependencies
+        run: npm run next:install
+
       - name: Fetch pinned OMP Runtime
         run: npm run runtime:fetch
 
       - name: Verify
         run: npm run verify
+        env:
+          # The identity tests drive real agent turns and need a configured
+          # provider; CI has no OMP credentials.
+          OMP_SKIP_REAL_RUNTIME_TESTS: "1"

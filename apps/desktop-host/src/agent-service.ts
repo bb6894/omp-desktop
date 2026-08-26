@@ -1,7 +1,9 @@
 import { dirname } from "node:path";
 import type { HostEvent } from "./contracts";
+import type { InteractionResponse } from "../../../protocol/domain";
 import { OmpRpcBridge, type RpcFrame } from "./rpc-bridge";
 import { spawnVerifiedRuntime, type RuntimeProcess } from "./runtime";
+import { extractApprovalTool, type ApprovalRuleBook } from "./approval-rules";
 
 type AgentEntry = {
   bridge: OmpRpcBridge;
@@ -26,6 +28,15 @@ export type AgentServiceOptions = {
   sessionDir: string;
   onEvent: (event: HostEvent) => void;
   onDiagnostic?: (message: string) => void;
+  /** Desktop-side approval grants; absent in fixture mode. */
+  ruleBook?: ApprovalRuleBook;
+};
+
+const INTERACTIVE_UI_METHODS: Record<"confirm" | "select" | "input" | "editor", true> = {
+  confirm: true,
+  select: true,
+  input: true,
+  editor: true
 };
 
 /** Owns verified OMP Runtime processes and exposes a narrow command surface. */
@@ -53,8 +64,23 @@ export class AgentService {
     return { state: "stopped" };
   }
 
-  async respond(sessionId: string, interactionId: string, value: unknown): Promise<unknown> {
-    return this.command(sessionId, { type: "extension_ui_response", id: interactionId, value });
+  /**
+   * The Runtime resolves dialogs by reading TOP-LEVEL fields of the whole
+   * `extension_ui_response` frame (`confirmed` / `value` / `cancelled`) — a
+   * nested `value` payload silently reads as "deny". Validate at this boundary
+   * and spread the patch onto the frame.
+   */
+  async respond(
+    sessionId: string,
+    interactionId: string,
+    response: InteractionResponse
+  ): Promise<unknown> {
+    if (!isValidInteractionResponse(response)) throw new Error("INTERACTION_RESPONSE_INVALID");
+    return this.command(sessionId, {
+      type: "extension_ui_response",
+      id: interactionId,
+      ...response
+    });
   }
 
   async command(sessionId: string, command: Record<string, unknown>): Promise<unknown> {
@@ -70,6 +96,11 @@ export class AgentService {
     return response;
   }
 
+  /** Read-only state view for Host-owned projection assembly; never spawns or mutates. */
+  stateOf(sessionId: string): AgentState | null {
+    return this.agents.get(sessionId)?.state ?? null;
+  }
+
   async stopAll(): Promise<void> {
     const entries = [...this.agents.entries()];
     this.agents.clear();
@@ -80,8 +111,13 @@ export class AgentService {
     const spawned = await spawnVerifiedRuntime({
       runtimePath: this.options.runtimePath,
       cwd: this.options.cwd,
-      sessionDir: this.options.sessionDir
+      sessionDir: this.options.sessionDir,
+      // The Runtime's own default is `yolo` (every tier auto-approved). A
+      // desktop product never inherits that silently: exec-tier tools now
+      // prompt, and explicit desktop rules may answer those prompts.
+      args: ["--approval-mode", "write"]
     });
+
     let entry: AgentEntry;
     const bridge = new OmpRpcBridge(spawned.process, {
       onFrame: (frame) => this.handleFrame(sessionId, frame),
@@ -103,6 +139,24 @@ export class AgentService {
   }
 
   private handleFrame(sessionId: string, frame: RpcFrame): void {
+    // Approval-rule interception happens BEFORE the ask is journaled or the
+    // state machine flips to awaiting-interaction: a granted tool prompt is
+    // answered in place and surfaces as a system note, not a phantom card.
+    if (this.options.ruleBook) {
+      const approvalTool = extractApprovalTool(frame);
+      if (approvalTool && this.options.ruleBook.has(approvalTool, sessionId)) {
+        const entry = this.agents.get(sessionId);
+        if (entry && typeof frame.id === "string") {
+          entry.bridge
+            .request({ type: "extension_ui_response", id: frame.id, value: "Approve" })
+            .then(() => this.emitNote(sessionId, `已按你的审批规则自动放行：${approvalTool}`))
+            .catch((error: unknown) =>
+              this.options.onDiagnostic?.(`[omp/${sessionId}] 规则应答失败：${String(error)}`)
+            );
+          return;
+        }
+      }
+    }
     const sequence = (this.sequences.get(sessionId) ?? 0) + 1;
     this.sequences.set(sessionId, sequence);
     this.options.onEvent({
@@ -139,6 +193,33 @@ export class AgentService {
       payload: { state }
     });
   }
+
+  private emitNote(sessionId: string, text: string): void {
+    const sequence = (this.sequences.get(sessionId) ?? 0) + 1;
+    this.sequences.set(sessionId, sequence);
+    this.options.onEvent({
+      type: "event",
+      sessionId,
+      sequence,
+      name: "agent.note",
+      payload: { text }
+    });
+  }
+}
+
+function isValidInteractionResponse(response: InteractionResponse): boolean {
+  if (typeof response !== "object" || response === null) return false;
+  const keys = Object.keys(response);
+  if ("confirmed" in response) {
+    return keys.length === 1 && typeof response.confirmed === "boolean";
+  }
+  if ("value" in response) {
+    return keys.length === 1 && typeof response.value === "string";
+  }
+  if ("cancelled" in response) {
+    return keys.length === 1 && response.cancelled === true;
+  }
+  return false;
 }
 
 export function sanitizeFrame(frame: RpcFrame): RpcFrame {
@@ -171,9 +252,7 @@ function stateForRuntimeFrame(frame: RpcFrame, current: AgentState): AgentState 
       return "awaiting-tool";
     case "extension_ui_request": {
       const method = typeof frame.method === "string" ? frame.method : "";
-      return new Set(["input", "select", "confirm", "editor"]).has(method)
-        ? "awaiting-interaction"
-        : current;
+      return method in INTERACTIVE_UI_METHODS ? "awaiting-interaction" : current;
     }
     case "turn_end":
     case "agent_end":

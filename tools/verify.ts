@@ -12,8 +12,6 @@ const testsRoot = resolve(root, "apps/desktop-host/tests");
 // These suites run in their own dedicated gates below; excluding them here
 // keeps the Host gate from double-running them or coupling to gate order.
 const specializedTests = new Set([
-  "frontend-harness-client.test.ts",
-  "frontend-load-order.test.ts",
   "tauri-command-surface.test.ts",
   "vendor-boundary.test.ts"
 ]);
@@ -43,15 +41,9 @@ const gates: Gate[] = [
     name: "Compiled Host fixture smoke",
     command: ["bun", "tools/smoke-host-fixture.ts", "artifacts/omp-desktop-host.exe"]
   },
-  {
-    name: "Frontend dependency and bridge checks",
-    command: [
-      "bun",
-      "test",
-      "apps/desktop-host/tests/frontend-load-order.test.ts",
-      "apps/desktop-host/tests/frontend-harness-client.test.ts"
-    ]
-  },
+  { name: "Renderer typecheck", command: ["npm", "run", "next:typecheck"] },
+  { name: "Renderer tests", command: ["npm", "run", "next:test"] },
+  { name: "Renderer production build", command: ["npm", "run", "next:build"] },
   {
     name: "Rust formatting",
     command: ["cargo", "fmt", "--manifest-path", "src-tauri/Cargo.toml", "--all", "--", "--check"]
