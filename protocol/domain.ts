@@ -85,6 +85,12 @@ export type InteractionRequestedEvent = TimelineEnvelope<"interaction.requested"
   /** input hint text. */
   placeholder: string | null;
   options: readonly string[] | null;
+  /**
+   * Tool name when this request is the Runtime's tool-approval prompt
+   * (`Allow tool: <name>` select); null for every other dialog. The desktop
+   * approval-rule engine keys grants on this value only.
+   */
+  approvalTool: string | null;
 };
 
 /** Emitted when the Runtime cancels its own dialog (`method: "cancel"`). */

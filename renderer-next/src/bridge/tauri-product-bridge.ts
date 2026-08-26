@@ -7,7 +7,9 @@ import type {
   SessionMetadataIndex,
   SessionMetadataRecord,
   WorkspaceDiff,
-  WorkspaceStatus
+  WorkspaceStatus,
+  ApprovalGrantOutcome,
+  ApprovalRuleLists
 } from "./product-bridge";
 import type {
   InteractionResponse,
@@ -318,6 +320,32 @@ export function createTauriProductBridge(seams?: Partial<TauriSeams>): ProductBr
 
     async getWorkspaceDiff(path: string): Promise<WorkspaceDiff> {
       return thin<WorkspaceDiff>("workspace_diff", { path });
+    },
+
+    async listApprovalRules(): Promise<ApprovalRuleLists> {
+      const rules = await thin<Partial<ApprovalRuleLists>>("approval_rules_list", {});
+      return {
+        session: Array.isArray(rules.session) ? rules.session : [],
+        project: Array.isArray(rules.project) ? rules.project : []
+      };
+    },
+
+    async addApprovalRule(
+      tool: string,
+      scope: "session" | "project",
+      sourceInteractionId: string | null
+    ): Promise<ApprovalGrantOutcome> {
+      return thin<ApprovalGrantOutcome>("approval_rules_add", {
+        targetSessionId: route(),
+        tool,
+        scope,
+        sourceInteractionId
+      });
+    },
+
+    async removeApprovalRule(ruleId: string): Promise<boolean> {
+      const result = await thin<{ removed?: unknown }>("approval_rules_remove", { ruleId });
+      return result.removed === true;
     }
   };
 }

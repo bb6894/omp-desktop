@@ -1,6 +1,7 @@
 import type { HostEvent, HostResponse } from "./contracts";
 import { EventJournal } from "./event-journal";
-import { runStateEvent, translateFrame } from "./timeline-events";
+import { isValidApprovalTool } from "./approval-rules";
+import { runStateEvent, systemNoteEvent, translateFrame } from "./timeline-events";
 import type {
   InteractionResponse,
   RunStateValue,
@@ -29,6 +30,19 @@ export type SessionMetadataApi = {
 export type WorkspaceApi = {
   status(): Promise<unknown>;
   diff(path: string): Promise<unknown>;
+};
+
+/** Storage seam for desktop-side approval grants; injected once per Host process. */
+export type ApprovalRulesApi = {
+  list(routeSessionId: string): Promise<{
+    session: readonly { id: string; tool: string; createdAt: string }[];
+    project: readonly { id: string; tool: string; createdAt: string }[];
+  }>;
+  grant(
+    routeSessionId: string,
+    input: { tool: string; scope: "session" | "project"; sourceInteractionId: string | null }
+  ): Promise<{ created: boolean; rule: { id: string; tool: string; createdAt: string } | null }>;
+  revoke(ruleId: string): Promise<boolean>;
 };
 
 export type AgentServiceApi = {
@@ -68,7 +82,10 @@ const REQUEST_KEYS = {
   "session.open_runtime": ["requestId", "routeSessionId", "sessionId", "type"],
   "workspace.status": ["requestId", "type"],
   "workspace.diff": ["path", "requestId", "type"],
-  "events.replay": ["afterSeq", "requestId", "sessionId", "type"]
+  "events.replay": ["afterSeq", "requestId", "sessionId", "type"],
+  "approval.rules.list": ["requestId", "sessionId", "type"],
+  "approval.rules.add": ["requestId", "sessionId", "type", "tool", "scope", "sourceInteractionId"],
+  "approval.rules.remove": ["id", "requestId", "type"]
 } as const;
 
 const VALID_RUN_STATES: Record<RunStateValue, true> = {
@@ -166,6 +183,7 @@ export class SessionService {
   private eventSink: (event: HostEvent) => void = () => undefined;
   private agentService: AgentServiceApi | null = null;
   private workspace: WorkspaceApi | null = null;
+  private approvalRules: ApprovalRulesApi | null = null;
   constructor(
     private readonly sessions: OmpSessionAdapter,
     private readonly harness: HarnessInspectorApi | null = null,
@@ -191,6 +209,10 @@ export class SessionService {
 
   setWorkspace(workspace: WorkspaceApi): void {
     this.workspace = workspace;
+  }
+
+  setApprovalRules(approvalRules: ApprovalRulesApi): void {
+    this.approvalRules = approvalRules;
   }
 
   setEventSink(eventSink: (event: HostEvent) => void): void {
@@ -221,6 +243,12 @@ export class SessionService {
       const state = (event.payload as { state?: unknown } | undefined)?.state;
       if (typeof state !== "string" || !(state in VALID_RUN_STATES)) return;
       translated = [runStateEvent(state as RunStateValue)];
+    } else if (event.name === "agent.note") {
+      // Host-synthesized notes (e.g. rule-answered approval prompts); the
+      // payload text is Host-owned, never renderer-supplied.
+      const text = (event.payload as { text?: unknown } | undefined)?.text;
+      if (typeof text !== "string" || text.length === 0 || text.length > 2000) return;
+      translated = [systemNoteEvent(text)];
     } else {
       return;
     }
@@ -411,6 +439,39 @@ export class SessionService {
           if (!check.ok) return responseError(requestId, check.code);
           const diff: unknown = await this.workspace.diff(check.value);
           return { type: "response", requestId, ok: true, value: diff };
+        }
+        case "approval.rules.list": {
+          if (!this.approvalRules || typeof input.sessionId !== "string") {
+            return responseError(requestId, "APPROVAL_RULES_UNAVAILABLE");
+          }
+          const rules = await this.approvalRules.list(this.runtimeId(input.sessionId));
+          return { type: "response", requestId, ok: true, value: rules };
+        }
+        case "approval.rules.add": {
+          if (!this.approvalRules || typeof input.sessionId !== "string") {
+            return responseError(requestId, "APPROVAL_RULES_UNAVAILABLE");
+          }
+          if (
+            !isValidApprovalTool(input.tool) ||
+            (input.scope !== "session" && input.scope !== "project") ||
+            (input.sourceInteractionId !== null &&
+              (typeof input.sourceInteractionId !== "string" || input.sourceInteractionId.length > 128))
+          ) {
+            return responseError(requestId, "APPROVAL_RULE_INVALID_REQUEST");
+          }
+          const outcome = await this.approvalRules.grant(this.runtimeId(input.sessionId), {
+            tool: input.tool,
+            scope: input.scope,
+            sourceInteractionId: input.sourceInteractionId
+          });
+          return { type: "response", requestId, ok: true, value: outcome };
+        }
+        case "approval.rules.remove": {
+          if (!this.approvalRules || typeof input.id !== "string" || input.id.length === 0 || input.id.length > 160) {
+            return responseError(requestId, "APPROVAL_RULE_INVALID_REQUEST");
+          }
+          const removed = await this.approvalRules.revoke(input.id);
+          return { type: "response", requestId, ok: true, value: { removed } };
         }
         default:
           return responseError(requestId, "UNKNOWN_COMMAND");

@@ -243,6 +243,48 @@ fn events_replay(
     )
 }
 
+#[tauri::command]
+fn approval_rules_list(
+    session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(&session_id, "approval.rules.list", serde_json::json!({}))
+}
+
+#[tauri::command]
+fn approval_rules_add(
+    session_id: String,
+    target_session_id: String,
+    tool: String,
+    scope: String,
+    source_interaction_id: Option<String>,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "approval.rules.add",
+        serde_json::json!({
+            "sessionId": target_session_id,
+            "tool": tool,
+            "scope": scope,
+            "sourceInteractionId": source_interaction_id,
+        }),
+    )
+}
+
+#[tauri::command]
+fn approval_rules_remove(
+    session_id: String,
+    rule_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "approval.rules.remove",
+        serde_json::json!({ "id": rule_id }),
+    )
+}
+
 fn harness_inspection_request() -> (&'static str, serde_json::Value) {
     ("harness.inspect", serde_json::json!({}))
 }
@@ -360,6 +402,9 @@ pub fn run() {
             workspace_changes,
             workspace_diff,
             events_replay,
+            approval_rules_list,
+            approval_rules_add,
+            approval_rules_remove,
             inspect_harness,
             preview_harness_memory,
             apply_harness_memory,

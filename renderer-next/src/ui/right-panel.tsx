@@ -3,6 +3,7 @@ import type { SessionViewData } from "../lib/session-lifecycle";
 import { parseUnifiedDiff } from "../lib/diff-view";
 import {
   useProductBridge,
+  type ApprovalRuleLists,
   type WorkspaceDiff,
   type WorkspaceFileEntry,
   type WorkspaceStatus
@@ -22,7 +23,15 @@ type Tab = "detail" | "changes";
  * Changes/Diff view. Diff content is fetched per file through the bounded
  * Host ops — caps, binary detection, and truncation are Host-owned.
  */
-export function RightPanel({ session }: { session: SessionViewData | null }) {
+export function RightPanel({
+  session,
+  approvalRules,
+  onRemoveRule
+}: {
+  session: SessionViewData | null;
+  approvalRules: ApprovalRuleLists | null;
+  onRemoveRule: (ruleId: string) => void;
+}) {
   const bridge = useProductBridge();
   const [tab, setTab] = useState<Tab>("detail");
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
@@ -105,6 +114,40 @@ export function RightPanel({ session }: { session: SessionViewData | null }) {
                 <dd>{session.writeMode === "history-readonly" ? "只读来源" : "桌面副本"}</dd>
               </div>
             </dl>
+            <section className="right-panel__rules" aria-label="审批规则">
+              <p className="right-panel__rules-title">审批规则（自动放行）</p>
+              {(approvalRules?.session.length ?? 0) === 0 && (approvalRules?.project.length ?? 0) === 0 && (
+                <p className="right-panel__placeholder">暂无规则。审批卡片上可选择记住放行。</p>
+              )}
+              <ul className="right-panel__rule-list">
+                {(approvalRules?.session ?? []).map((rule) => (
+                  <li key={rule.id} className="right-panel__rule">
+                    <span className="right-panel__rule-tool">{rule.tool}</span>
+                    <span className="right-panel__rule-scope">本会话</span>
+                    <button
+                      type="button"
+                      className="button button--ghost right-panel__rule-remove"
+                      onClick={() => onRemoveRule(rule.id)}
+                    >
+                      移除
+                    </button>
+                  </li>
+                ))}
+                {(approvalRules?.project ?? []).map((rule) => (
+                  <li key={rule.id} className="right-panel__rule">
+                    <span className="right-panel__rule-tool">{rule.tool}</span>
+                    <span className="right-panel__rule-scope">本项目</span>
+                    <button
+                      type="button"
+                      className="button button--ghost right-panel__rule-remove"
+                      onClick={() => onRemoveRule(rule.id)}
+                    >
+                      移除
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         )
       ) : (

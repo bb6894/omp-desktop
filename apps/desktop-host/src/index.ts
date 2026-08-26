@@ -11,6 +11,7 @@ import { HarnessMutationService } from "./harness-mutation-service";
 import { join } from "node:path";
 import { SessionMetadataStore } from "./session-metadata-store";
 import { collectStatus, buildDiff, nodeExec } from "./workspace";
+import { ApprovalRuleBook } from "./approval-rules";
 
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
@@ -40,7 +41,11 @@ export function createHostSessionService(cwd: string, paths: ProfilePaths): Sess
   const sessionMetadata = new SessionMetadataStore(
     join(harnessDataRoot, "OMP Desktop", "sessions", "projects", harnessProjectId(cwd), "metadata.json")
   );
+  const approvalRules = new ApprovalRuleBook(
+    join(harnessDataRoot, "OMP Desktop", "sessions", "projects", harnessProjectId(cwd), "approval-rules.json")
+  );
   const sessions = new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations, sessionMetadata);
+  sessions.setApprovalRules(approvalRules);
   sessions.setWorkspace({
     status: () => collectStatus(cwd, nodeExec),
     diff: (path) => buildDiff(cwd, path, nodeExec)
@@ -64,8 +69,8 @@ async function runHost(): Promise<void> {
       runtimePath: optionValue(args, "--runtime") ?? defaultRuntimePath(process.execPath),
       cwd,
       sessionDir: paths.desktopSessionsDir,
-      onEvent: (event) => sessions.emit(event),
-      onDiagnostic: (message) => process.stderr.write(`${message}\n`)
+      onDiagnostic: (message) => process.stderr.write(`${message}\n`),
+      ruleBook: approvalRules
     });
   sessions.setAgentService(agents);
   await serveLocalHost(process.stdin, {

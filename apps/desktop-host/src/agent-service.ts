@@ -3,6 +3,7 @@ import type { HostEvent } from "./contracts";
 import type { InteractionResponse } from "../../../protocol/domain";
 import { OmpRpcBridge, type RpcFrame } from "./rpc-bridge";
 import { spawnVerifiedRuntime, type RuntimeProcess } from "./runtime";
+import { extractApprovalTool, type ApprovalRuleBook } from "./approval-rules";
 
 type AgentEntry = {
   bridge: OmpRpcBridge;
@@ -27,6 +28,8 @@ export type AgentServiceOptions = {
   sessionDir: string;
   onEvent: (event: HostEvent) => void;
   onDiagnostic?: (message: string) => void;
+  /** Desktop-side approval grants; absent in fixture mode. */
+  ruleBook?: ApprovalRuleBook;
 };
 
 const INTERACTIVE_UI_METHODS: Record<"confirm" | "select" | "input" | "editor", true> = {
@@ -108,8 +111,13 @@ export class AgentService {
     const spawned = await spawnVerifiedRuntime({
       runtimePath: this.options.runtimePath,
       cwd: this.options.cwd,
-      sessionDir: this.options.sessionDir
+      sessionDir: this.options.sessionDir,
+      // The Runtime's own default is `yolo` (every tier auto-approved). A
+      // desktop product never inherits that silently: exec-tier tools now
+      // prompt, and explicit desktop rules may answer those prompts.
+      args: ["--approval-mode", "write"]
     });
+
     let entry: AgentEntry;
     const bridge = new OmpRpcBridge(spawned.process, {
       onFrame: (frame) => this.handleFrame(sessionId, frame),
@@ -131,6 +139,24 @@ export class AgentService {
   }
 
   private handleFrame(sessionId: string, frame: RpcFrame): void {
+    // Approval-rule interception happens BEFORE the ask is journaled or the
+    // state machine flips to awaiting-interaction: a granted tool prompt is
+    // answered in place and surfaces as a system note, not a phantom card.
+    if (this.options.ruleBook) {
+      const approvalTool = extractApprovalTool(frame);
+      if (approvalTool && this.options.ruleBook.has(approvalTool, sessionId)) {
+        const entry = this.agents.get(sessionId);
+        if (entry && typeof frame.id === "string") {
+          entry.bridge
+            .request({ type: "extension_ui_response", id: frame.id, value: "Approve" })
+            .then(() => this.emitNote(sessionId, `已按你的审批规则自动放行：${approvalTool}`))
+            .catch((error: unknown) =>
+              this.options.onDiagnostic?.(`[omp/${sessionId}] 规则应答失败：${String(error)}`)
+            );
+          return;
+        }
+      }
+    }
     const sequence = (this.sequences.get(sessionId) ?? 0) + 1;
     this.sequences.set(sessionId, sequence);
     this.options.onEvent({
@@ -165,6 +191,18 @@ export class AgentService {
       sequence,
       name: "agent.state",
       payload: { state }
+    });
+  }
+
+  private emitNote(sessionId: string, text: string): void {
+    const sequence = (this.sequences.get(sessionId) ?? 0) + 1;
+    this.sequences.set(sessionId, sequence);
+    this.options.onEvent({
+      type: "event",
+      sessionId,
+      sequence,
+      name: "agent.note",
+      payload: { text }
     });
   }
 }

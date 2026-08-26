@@ -67,7 +67,8 @@ describe("translateFrame", () => {
           title: "选",
           message: null,
           placeholder: null,
-          options: ["a"]
+          options: ["a"],
+          approvalTool: null
         }
       ],
       ignored: 0
@@ -147,7 +148,8 @@ describe("extension UI side channels (P1)", () => {
           title: "允许执行?",
           message: "rm -rf /tmp/x",
           placeholder: null,
-          options: null
+          options: null,
+          approvalTool: null
         }
       ],
       ignored: 0
@@ -163,7 +165,34 @@ describe("extension UI side channels (P1)", () => {
           title: "名称",
           message: null,
           placeholder: "my-app",
-          options: null
+          options: null,
+          approvalTool: null
+        }
+      ],
+      ignored: 0
+    });
+  });
+
+  test("tool-approval prompts carry the approvalTool identity", () => {
+    expect(
+      translateFrame({
+        type: "extension_ui_request",
+        id: "a1",
+        method: "select",
+        title: "Allow tool: bash\n$ npm install",
+        options: ["Approve", "Deny"]
+      })
+    ).toEqual({
+      events: [
+        {
+          kind: "interaction.requested",
+          interactionId: "a1",
+          method: "select",
+          title: "Allow tool: bash\n$ npm install",
+          message: null,
+          placeholder: null,
+          options: ["Approve", "Deny"],
+          approvalTool: "bash"
         }
       ],
       ignored: 0

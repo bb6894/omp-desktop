@@ -43,6 +43,10 @@ export type WorkbenchState = {
   models: readonly { id: string; provider: string }[];
 };
 
+export type ApprovalRuleView = { id: string; tool: string; createdAt: string };
+export type ApprovalRuleLists = { session: readonly ApprovalRuleView[]; project: readonly ApprovalRuleView[] };
+export type ApprovalGrantOutcome = { created: boolean; rule: ApprovalRuleView | null };
+
 export type BridgeHandlers = {
   onEvent(event: TimelineEvent): void;
   onExit(reason: string): void;
@@ -80,6 +84,14 @@ export type ProductBridge = {
   getWorkspaceChanges(): Promise<WorkspaceStatus>;
   /** Bounded per-file diff vs HEAD; path is project-relative (validated Host-side). */
   getWorkspaceDiff(path: string): Promise<WorkspaceDiff>;
+  /** Desktop-side approval grants for the routed session (memory) + project (persisted). */
+  listApprovalRules(): Promise<ApprovalRuleLists>;
+  addApprovalRule(
+    tool: string,
+    scope: "session" | "project",
+    sourceInteractionId: string | null
+  ): Promise<ApprovalGrantOutcome>;
+  removeApprovalRule(ruleId: string): Promise<boolean>;
 };
 
 export const ProductBridgeContext = createContext<ProductBridge | null>(null);

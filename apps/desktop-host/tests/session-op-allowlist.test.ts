@@ -23,7 +23,10 @@ const topLevelOperations = [
   "session.open_runtime",
   "workspace.status",
   "workspace.diff",
-  "events.replay"
+  "events.replay",
+  "approval.rules.list",
+  "approval.rules.add",
+  "approval.rules.remove"
 ] as const;
 
 function requestKeyNames(source: string): string[] {
@@ -57,6 +60,9 @@ test("renderer direct commands use only declared top-level operations", () => {
     "workspace.status",
     "workspace.diff",
     "events.replay",
+    "approval.rules.list",
+    "approval.rules.add",
+    "approval.rules.remove",
     "harness.inspect",
     "harness.preview",
     "harness.apply",

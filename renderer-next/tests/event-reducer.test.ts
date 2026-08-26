@@ -74,6 +74,7 @@ test("interaction.requested records a pending ask entry with options", () => {
       title: "选择继续方式",
       message: null,
       placeholder: null,
+      approvalTool: null,
       options: ["继续", "停止"]
     })
   ]);
@@ -85,6 +86,7 @@ test("interaction.requested records a pending ask entry with options", () => {
     message: null,
     placeholder: null,
     options: ["继续", "停止"],
+    approvalTool: null,
     answered: false
   });
 });
@@ -194,6 +196,7 @@ describe("P1 interaction lifecycle", () => {
         title: "允许写入?",
         message: "将修改 2 个文件",
         placeholder: null,
+          approvalTool: null,
         options: null
       }),
       event({ kind: "interaction.cancelled", cancelsId: "ask-9" })
@@ -223,6 +226,7 @@ describe("P1 interaction lifecycle", () => {
         title: "允许执行 bash?",
         message: "git push origin main",
         placeholder: null,
+          approvalTool: null,
         options: null
       })
     ]);

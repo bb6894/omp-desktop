@@ -14,11 +14,13 @@ type AskEntry = Extract<TimelineEntry, { kind: "ask" }>;
 export function AskBubble({
   entry,
   busy,
-  onAnswer
+  onAnswer,
+  onAddRule
 }: {
   entry: AskEntry;
   busy: boolean;
   onAnswer: (interactionId: string, response: InteractionResponse) => void;
+  onAddRule?: (tool: string, scope: "session" | "project", sourceInteractionId: string) => void;
 }) {
   const [textValue, setTextValue] = useState("");
   if (entry.answered) {
@@ -68,6 +70,34 @@ export function AskBubble({
             {option}
           </button>
         ))}
+        {method === "select" && entry.approvalTool && onAddRule && (
+          <>
+            <button
+              type="button"
+              className="button button--ghost"
+              disabled={busy}
+              title={`本次放行后，本会话内的 ${entry.approvalTool} 审批将自动通过`}
+              onClick={() => {
+                answer({ value: "Approve" });
+                onAddRule(entry.approvalTool!, "session", entry.id);
+              }}
+            >
+              本会话内放行此类
+            </button>
+            <button
+              type="button"
+              className="button button--ghost"
+              disabled={busy}
+              title={`本次放行后，本项目内的 ${entry.approvalTool} 审批将自动通过（持久保存）`}
+              onClick={() => {
+                answer({ value: "Approve" });
+                onAddRule(entry.approvalTool!, "project", entry.id);
+              }}
+            >
+              项目内记住放行
+            </button>
+          </>
+        )}
         {(method === "input" || method === "editor") && (
           <>
             {method === "editor" ? (

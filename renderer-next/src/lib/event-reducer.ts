@@ -28,6 +28,8 @@ export type TimelineEntry =
       message?: string | null;
       placeholder?: string | null;
       options?: readonly string[];
+      /** Tool name for Runtime approval prompts; drives the rule-grant buttons. */
+      approvalTool?: string | null;
       answered: boolean;
     }
   | { kind: "note"; id: string; level: "info" | "warning" | "error"; text: string }
@@ -236,7 +238,8 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         options: Array.isArray(event.options)
           ? event.options.filter((option): option is string => typeof option === "string")
           : undefined,
-        answered: false
+        answered: false,
+        approvalTool: typeof event.approvalTool === "string" ? event.approvalTool : null
       };
       return { ...based, lastSeq: event.seq, entries: replaceOrAppend(based.entries, entry) };
     }

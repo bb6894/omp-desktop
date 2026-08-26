@@ -45,6 +45,10 @@ local Host protocol or dedicated Rust request helpers:
 | `workspace.status` | `{ requestId, type }` | bounded changed-file list or `WORKSPACE_*` code |
 | `workspace.diff` | `path` (project-relative) | bounded diff result or stable validation code |
 | `events.replay` | `sessionId`, `afterSeq` | journaled timeline events after `afterSeq`; `dropped=true` requires message re-hydration |
+| `approval.rules.list` | `sessionId` | `{ session, project }` grant lists for the routed session |
+| `approval.rules.add` | `sessionId`, `tool`, `scope`, `sourceInteractionId` | grant outcome; tool charset/scope validated, duplicates return `created:false` |
+| `approval.rules.remove` | rule `id` (`session:<tool>` / `project:<tool>`) | `{ removed }`; idempotent |
+
 
 Unknown top-level names, malformed shapes, extra fields, and duplicate request
 ids fail closed. The nested `agent.command` names are owned by Agent/RPC tests

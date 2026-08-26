@@ -87,6 +87,9 @@ function translateExtensionUiRequest(frame: RpcFrame): TranslateResult {
   }
 
   if (!(method in INTERACTIVE_UI_METHODS) || !id) return { events: [], ignored: 1 };
+  const options = Array.isArray(frame.options)
+    ? frame.options.filter((option): option is string => typeof option === "string")
+    : null;
   const requested: Omit<InteractionRequestedEvent, "v" | "seq" | "sessionId"> = {
     kind: "interaction.requested",
     interactionId: id,
@@ -94,11 +97,26 @@ function translateExtensionUiRequest(frame: RpcFrame): TranslateResult {
     title: typeof frame.title === "string" && frame.title.length > 0 ? frame.title : "需要确认",
     message: typeof frame.message === "string" ? frame.message : null,
     placeholder: typeof frame.placeholder === "string" ? frame.placeholder : null,
-    options: Array.isArray(frame.options)
-      ? frame.options.filter((option): option is string => typeof option === "string")
-      : null
+    options,
+    approvalTool: extractApprovalToolFromFrame(frame, options)
   };
   return { events: [requested], ignored: 0 };
+}
+
+/**
+ * Mirrors the pinned Runtime's `formatApprovalPrompt` shape: a tool-approval
+ * prompt is an Approve/Deny select titled `Allow tool: <name>`. Everything
+ * else carries no approval-tool identity.
+ */
+function extractApprovalToolFromFrame(
+  frame: RpcFrame,
+  options: readonly string[] | null
+): string | null {
+  if (frame.method !== "select") return null;
+  if (options?.length !== 2 || options[0] !== "Approve" || options[1] !== "Deny") return null;
+  const title = typeof frame.title === "string" ? frame.title : "";
+  const match = /^Allow tool: ([A-Za-z0-9][A-Za-z0-9_.:-]{0,63})/m.exec(title);
+  return match ? match[1] : null;
 }
 
 
@@ -197,4 +215,8 @@ export function translateFrame(frame: RpcFrame): TranslateResult {
 
 export function runStateEvent(state: RunStateValue): Omit<RunStateEvent, "v" | "seq" | "sessionId"> {
   return { kind: "run.state", state };
+}
+
+export function systemNoteEvent(text: string): Omit<SystemNoteEvent, "v" | "seq" | "sessionId"> {
+  return { kind: "system.note", level: "info", text };
 }

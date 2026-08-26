@@ -22,7 +22,11 @@ import { RightPanel } from "./ui/right-panel";
 import { Timeline } from "./ui/timeline";
 import type { InteractionResponse } from "../../protocol/domain";
 import { AskBubble } from "./ui/ask-bubble";
-import type { WorkbenchState } from "./bridge/product-bridge";
+import type {
+  WorkbenchState,
+  ApprovalGrantOutcome,
+  ApprovalRuleLists
+} from "./bridge/product-bridge";
 import { Composer } from "./ui/composer";
 import { ErrorBoundary } from "./ui/error-boundary";
 
@@ -54,6 +58,7 @@ function Workbench({ transport }: { transport: Transport }) {
   const [newProjectPath, setNewProjectPath] = useState<string | null>(null);
   const [timelines, setTimelines] = useState<Record<string, TimelineModel>>({});
   const [workbench, setWorkbench] = useState<WorkbenchState | null>(null);
+  const [approvalRules, setApprovalRules] = useState<ApprovalRuleLists | null>(null);
 
   // Decision B: uuid → Host child route that runs this desktop session.
   // Mirror for callbacks that must read the latest model without re-arming.
@@ -150,6 +155,40 @@ function Workbench({ transport }: { transport: Transport }) {
     [bridge, transport]
   );
 
+  const refreshRules = useCallback(async () => {
+    if (transport !== "tauri") return;
+    try {
+      setApprovalRules(await bridge.listApprovalRules());
+    } catch {
+      setApprovalRules(null);
+    }
+  }, [bridge, transport]);
+
+  const addRule = useCallback(
+    (tool: string, scope: "session" | "project", sourceInteractionId: string) => {
+      void bridge
+        .addApprovalRule(tool, scope, sourceInteractionId)
+        .then((outcome: ApprovalGrantOutcome) => {
+          if (outcome.created) {
+            setNotice(scope === "project" ? `已记住：本项目内自动放行 ${tool}` : `已记住：本会话内自动放行 ${tool}`);
+          }
+        })
+        .then(() => refreshRules())
+        .catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)));
+    },
+    [bridge, refreshRules]
+  );
+
+  const removeRule = useCallback(
+    (ruleId: string) => {
+      void bridge
+        .removeApprovalRule(ruleId)
+        .then(() => refreshRules())
+        .catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)));
+    },
+    [bridge, refreshRules]
+  );
+
   const applySelection = useCallback(
     (sessionId: string, list: readonly SessionViewData[]) => {
       const view = list.find((item) => item.id === sessionId);
@@ -164,6 +203,7 @@ function Workbench({ transport }: { transport: Transport }) {
         void armEvents(ownedRoute, sessionId);
         void hydrate(sessionId);
         void loadWorkbench(ownedRoute);
+        void refreshRules();
       } else if (view.writeMode === "desktop-owned" && activeRoute.current !== null) {
         // A restart restores records before the renderer has a route map. Bind
         // the selected desktop session to the already-running default Host.
@@ -189,7 +229,7 @@ function Workbench({ transport }: { transport: Transport }) {
         void hydrate(sessionId);
       }
     },
-    [activate, armEvents, bridge, hydrate, loadWorkbench, transport]
+    [activate, armEvents, bridge, hydrate, loadWorkbench, refreshRules, transport]
   );
 
   useEffect(() => {
@@ -468,6 +508,7 @@ function Workbench({ transport }: { transport: Transport }) {
                     entry={ask}
                     busy={busy}
                     onAnswer={(interactionId, value) => void respondInteraction(interactionId, value)}
+                    onAddRule={addRule}
                   />
                 ))}
                 {selected.runtimeState === "running" && (
@@ -578,7 +619,11 @@ function Workbench({ transport }: { transport: Transport }) {
             </p>
           )}
         </main>
-        <RightPanel session={selected} />
+        <RightPanel
+          session={selected}
+          approvalRules={approvalRules}
+          onRemoveRule={removeRule}
+        />
       </div>
     </div>
   );
