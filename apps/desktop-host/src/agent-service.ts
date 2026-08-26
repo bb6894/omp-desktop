@@ -1,5 +1,6 @@
 import { dirname } from "node:path";
 import type { HostEvent } from "./contracts";
+import type { InteractionResponse } from "../../../protocol/domain";
 import { OmpRpcBridge, type RpcFrame } from "./rpc-bridge";
 import { spawnVerifiedRuntime, type RuntimeProcess } from "./runtime";
 
@@ -28,6 +29,13 @@ export type AgentServiceOptions = {
   onDiagnostic?: (message: string) => void;
 };
 
+const INTERACTIVE_UI_METHODS: Record<"confirm" | "select" | "input" | "editor", true> = {
+  confirm: true,
+  select: true,
+  input: true,
+  editor: true
+};
+
 /** Owns verified OMP Runtime processes and exposes a narrow command surface. */
 export class AgentService {
   private readonly agents = new Map<string, AgentEntry>();
@@ -53,8 +61,23 @@ export class AgentService {
     return { state: "stopped" };
   }
 
-  async respond(sessionId: string, interactionId: string, value: unknown): Promise<unknown> {
-    return this.command(sessionId, { type: "extension_ui_response", id: interactionId, value });
+  /**
+   * The Runtime resolves dialogs by reading TOP-LEVEL fields of the whole
+   * `extension_ui_response` frame (`confirmed` / `value` / `cancelled`) — a
+   * nested `value` payload silently reads as "deny". Validate at this boundary
+   * and spread the patch onto the frame.
+   */
+  async respond(
+    sessionId: string,
+    interactionId: string,
+    response: InteractionResponse
+  ): Promise<unknown> {
+    if (!isValidInteractionResponse(response)) throw new Error("INTERACTION_RESPONSE_INVALID");
+    return this.command(sessionId, {
+      type: "extension_ui_response",
+      id: interactionId,
+      ...response
+    });
   }
 
   async command(sessionId: string, command: Record<string, unknown>): Promise<unknown> {
@@ -68,6 +91,11 @@ export class AgentService {
     const response = sanitizeFrame(await entry.bridge.request(command));
     if (command.type === "abort") this.setState(sessionId, entry, "interrupted");
     return response;
+  }
+
+  /** Read-only state view for Host-owned projection assembly; never spawns or mutates. */
+  stateOf(sessionId: string): AgentState | null {
+    return this.agents.get(sessionId)?.state ?? null;
   }
 
   async stopAll(): Promise<void> {
@@ -141,6 +169,21 @@ export class AgentService {
   }
 }
 
+function isValidInteractionResponse(response: InteractionResponse): boolean {
+  if (typeof response !== "object" || response === null) return false;
+  const keys = Object.keys(response);
+  if ("confirmed" in response) {
+    return keys.length === 1 && typeof response.confirmed === "boolean";
+  }
+  if ("value" in response) {
+    return keys.length === 1 && typeof response.value === "string";
+  }
+  if ("cancelled" in response) {
+    return keys.length === 1 && response.cancelled === true;
+  }
+  return false;
+}
+
 export function sanitizeFrame(frame: RpcFrame): RpcFrame {
   return sanitizeValue(frame) as RpcFrame;
 }
@@ -171,9 +214,7 @@ function stateForRuntimeFrame(frame: RpcFrame, current: AgentState): AgentState 
       return "awaiting-tool";
     case "extension_ui_request": {
       const method = typeof frame.method === "string" ? frame.method : "";
-      return new Set(["input", "select", "confirm", "editor"]).has(method)
-        ? "awaiting-interaction"
-        : current;
+      return method in INTERACTIVE_UI_METHODS ? "awaiting-interaction" : current;
     }
     case "turn_end":
     case "agent_end":

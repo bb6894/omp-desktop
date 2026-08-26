@@ -171,6 +171,78 @@ fn fork_session(
     )
 }
 
+#[tauri::command]
+fn session_views(
+    session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(&session_id, "session.views", serde_json::json!({}))
+}
+
+#[tauri::command]
+fn session_metadata_set(
+    session_id: String,
+    target_session_id: String,
+    patch: serde_json::Value,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "session.metadata.set",
+        serde_json::json!({ "sessionId": target_session_id, "patch": patch }),
+    )
+}
+
+#[tauri::command]
+fn session_open_runtime(
+    session_id: String,
+    target_session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "session.open_runtime",
+        serde_json::json!({
+            "routeSessionId": session_id,
+            "sessionId": target_session_id,
+        }),
+    )
+}
+
+#[tauri::command]
+fn workspace_changes(
+    session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(&session_id, "workspace.status", serde_json::json!({}))
+}
+
+#[tauri::command]
+fn workspace_diff(
+    session_id: String,
+    path: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "workspace.diff",
+        serde_json::json!({ "path": path }),
+    )
+}
+
+#[tauri::command]
+fn events_replay(
+    session_id: String,
+    after_seq: f64,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "events.replay",
+        serde_json::json!({ "afterSeq": after_seq }),
+    )
+}
+
 fn harness_inspection_request() -> (&'static str, serde_json::Value) {
     ("harness.inspect", serde_json::json!({}))
 }
@@ -282,6 +354,12 @@ pub fn run() {
             list_sessions,
             load_session_messages,
             fork_session,
+            session_views,
+            session_metadata_set,
+            session_open_runtime,
+            workspace_changes,
+            workspace_diff,
+            events_replay,
             inspect_harness,
             preview_harness_memory,
             apply_harness_memory,
@@ -297,10 +375,10 @@ pub fn run() {
                 win.open_devtools();
             }
             // Start the default session (no cwd = omp's working directory).
-            // The frontend activates this session on load via OMP_BRIDGE.activateSession("default").
+            // The renderer binds this route before loading session views.
             //
             // Failure handling: the bridge caches the spawn error keyed
-            // by session_id. The frontend's activateSession queries
+            // by session_id. The renderer's initial route activation queries
             // session_status on attach and surfaces the cached reason
             // if any — no event timing race, no delayed emit thread.
             let bridge = app.state::<HostBridge>();

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const servicePath = resolve(import.meta.dir, "../src/session-service.ts");
-const livePath = resolve(import.meta.dir, "../../../src/live.js");
+const rendererBridgePath = resolve(import.meta.dir, "../../../renderer-next/src/bridge/tauri-product-bridge.ts");
 const characterizationPath = resolve(import.meta.dir, "../../../docs/agents/renderer-bridge-characterization.md");
 
 const topLevelOperations = [
@@ -18,8 +18,12 @@ const topLevelOperations = [
   "agent.stop",
   "interaction.respond",
   "agent.command",
-  "task.metadata.get",
-  "task.metadata.set"
+  "session.views",
+  "session.metadata.set",
+  "session.open_runtime",
+  "workspace.status",
+  "workspace.diff",
+  "events.replay"
 ] as const;
 
 function requestKeyNames(source: string): string[] {
@@ -37,27 +41,33 @@ test("top-level SessionService operations are closed and documented", () => {
   }
 });
 
-test("legacy direct request helpers use only declared top-level operations", () => {
+test("renderer direct commands use only declared top-level operations", () => {
   const rustPath = resolve(import.meta.dir, "../../../src-tauri/src/lib.rs");
   const rust = readFileSync(rustPath, "utf8");
-  const live = readFileSync(livePath, "utf8");
+  const rendererBridge = readFileSync(rendererBridgePath, "utf8");
   const service = readFileSync(servicePath, "utf8");
   const declared = new Set(requestKeyNames(service));
   const expectedDirectRust = [
     "session.list",
     "session.messages",
     "session.fork",
+    "session.views",
+    "session.metadata.set",
+    "session.open_runtime",
+    "workspace.status",
+    "workspace.diff",
+    "events.replay",
     "harness.inspect",
     "harness.preview",
     "harness.apply",
     "harness.rollback"
   ];
   const productionRust = rust.slice(0, rust.lastIndexOf("#[cfg(test)]"));
-  const directRust = [...productionRust.matchAll(/\"([a-z]+\.[a-z]+)\"/g)]
+  const directRust = [...productionRust.matchAll(/\"([a-z_]+(?:\.[a-z_]+)+)\"/g)]
     .map((match) => match[1])
     .filter((operation, index, operations) => operations.indexOf(operation) === index);
   expect(directRust).toEqual(expectedDirectRust);
-  const agentCommands = [...live.matchAll(/_send\(\{ type: "([a-z_]+)"/g)].map((match) => match[1]);
+  const agentCommands = [...rendererBridge.matchAll(/type: "([a-z_]+)"/g)].map((match) => match[1]);
   for (const operation of directRust) {
     expect(declared.has(operation), operation).toBe(true);
   }

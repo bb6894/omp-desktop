@@ -12,12 +12,7 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "noEmit": true,
-    // No rootDir: sources intentionally span this tree and the Host tree via the
-    "paths": {
-      "@fixture-vectors": ["../apps/desktop-host/tests/fixtures/task-projection-vectors.ts"],
-      "@omp/product-contracts": ["../apps/desktop-host/src/product-contracts.ts"]
-    }
+    "noEmit": true
   },
   "include": ["src", "tests", "vite.config.ts"]
 }

@@ -6,7 +6,7 @@
 node_modules/
 artifacts/
 
-# ── renderer-next (branch-only scaffold; dist is build output) ───────────────
+# ── renderer-next (shipping renderer; dist is build output) ─────────────────
 renderer-next/dist/
 
 # ── Local overrides ───────────────────────────────────────────────────────────

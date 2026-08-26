@@ -1,20 +1,42 @@
 import type { HostEvent, HostResponse } from "./contracts";
+import { EventJournal } from "./event-journal";
+import { runStateEvent, translateFrame } from "./timeline-events";
+import type {
+  InteractionResponse,
+  RunStateValue,
+  TimelineEvent
+} from "../../../protocol/domain";
+import { TIMELINE_EVENT_NAME } from "../../../protocol/domain";
 import type { HarnessInspectorApi } from "./harness-contracts";
 import type { HarnessMutationApi } from "./harness-mutation-contracts";
 import type { OmpSessionAdapter } from "./omp-adapter";
-import { isValidIsoTimestamp, parseSessionId, type TaskMetadataIndex, type TaskMetadataRecord } from "./product-contracts";
+import type { AgentState } from "./agent-service";
+import { assembleSessionViews, isValidIsoTimestamp, isValidSessionId } from "./session-view";
+import { validateRelativePath } from "./workspace";
+import type {
+  SessionMetadataIndex,
+  SessionMetadataPatch,
+  SessionMetadataRecord
+} from "./session-metadata-store";
+
+/** Storage seam for non-content session metadata; injected once per Host process. */
+export type SessionMetadataApi = {
+  get(): Promise<SessionMetadataIndex>;
+  set(sessionId: string, patch: SessionMetadataPatch): Promise<SessionMetadataRecord>;
+  prune(liveSessionIds: readonly string[]): Promise<number>;
+};
+/** Bounded project workspace seam (changes/diff); injected once per Host process. */
+export type WorkspaceApi = {
+  status(): Promise<unknown>;
+  diff(path: string): Promise<unknown>;
+};
 
 export type AgentServiceApi = {
   start(sessionId: string, prompt: string): Promise<unknown>;
   stop(sessionId: string): Promise<unknown>;
-  respond(sessionId: string, interactionId: string, value: unknown): Promise<unknown>;
+  respond(sessionId: string, interactionId: string, response: InteractionResponse): Promise<unknown>;
   command(sessionId: string, command: Record<string, unknown>): Promise<unknown>;
-};
-
-/** Storage seam for task organization metadata; injected once per Host process. */
-export type TaskMetadataStoreApi = {
-  get(): Promise<TaskMetadataIndex>;
-  set(sessionId: string, patch: Partial<TaskMetadataRecord>): Promise<TaskMetadataRecord>;
+  stateOf(sessionId: string): AgentState | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -39,11 +61,27 @@ const REQUEST_KEYS = {
   "harness.rollback": ["requestId", "type", "reason"],
   "agent.start": ["prompt", "requestId", "sessionId", "type"],
   "agent.stop": ["requestId", "sessionId", "type"],
-  "interaction.respond": ["interactionId", "requestId", "sessionId", "type", "value"],
+  "interaction.respond": ["interactionId", "requestId", "response", "sessionId", "type"],
   "agent.command": ["command", "requestId", "sessionId", "type"],
-  "task.metadata.get": ["requestId", "type"],
-  "task.metadata.set": ["patch", "requestId", "sessionId", "type"]
+  "session.views": ["requestId", "type"],
+  "session.metadata.set": ["patch", "requestId", "sessionId", "type"],
+  "session.open_runtime": ["requestId", "routeSessionId", "sessionId", "type"],
+  "workspace.status": ["requestId", "type"],
+  "workspace.diff": ["path", "requestId", "type"],
+  "events.replay": ["afterSeq", "requestId", "sessionId", "type"]
 } as const;
+
+const VALID_RUN_STATES: Record<RunStateValue, true> = {
+  idle: true,
+  starting: true,
+  streaming: true,
+  "awaiting-tool": true,
+  "awaiting-interaction": true,
+  stopping: true,
+  completed: true,
+  interrupted: true,
+  failed: true
+};
 
 function hasOnlyKeys(input: Record<string, unknown>, allowed: readonly string[]): boolean {
   const allowedKeys = new Set(allowed);
@@ -58,26 +96,26 @@ function extractPayload(input: Record<string, unknown>, fields: readonly string[
   return payload;
 }
 
-const METADATA_PATCH_FIELDS = ["completed", "pinned", "lastViewedAt"] as const;
+const METADATA_PATCH_FIELDS = ["archived", "pinned", "lastViewedAt"] as const;
 
 /** ≥1 known field, only known fields, values validated — merges are partial by design. */
 function validateMetadataPatch(
   input: unknown
-): { ok: true; value: Partial<TaskMetadataRecord> } | { ok: false; code: string } {
-  if (!isRecord(input)) return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+): { ok: true; value: SessionMetadataPatch } | { ok: false; code: string } {
+  if (!isRecord(input)) return { ok: false, code: "SESSION_METADATA_INVALID_REQUEST" };
   const keys = Object.keys(input);
   if (keys.length === 0 || !keys.every((key) => (METADATA_PATCH_FIELDS as readonly string[]).includes(key))) {
-    return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+    return { ok: false, code: "SESSION_METADATA_INVALID_REQUEST" };
   }
-  const patch: Partial<TaskMetadataRecord> = {};
+  const patch: SessionMetadataPatch = {};
   for (const key of keys) {
     const value = input[key];
-    if (key === "completed" || key === "pinned") {
-      if (typeof value !== "boolean") return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+    if (key === "archived" || key === "pinned") {
+      if (typeof value !== "boolean") return { ok: false, code: "SESSION_METADATA_INVALID_REQUEST" };
       patch[key] = value;
     } else {
       if (value !== null && !isValidIsoTimestamp(value)) {
-        return { ok: false, code: "TASK_METADATA_INVALID_REQUEST" };
+        return { ok: false, code: "SESSION_METADATA_INVALID_REQUEST" };
       }
       patch.lastViewedAt = value;
     }
@@ -95,6 +133,7 @@ const KNOWN_ERRORS = new Set([
   "RUNTIME_FILENAME_MISMATCH",
   "RUNTIME_HASH_MISMATCH",
   "INTERACTION_NOT_FOUND",
+  "INTERACTION_RESPONSE_INVALID",
   "HARNESS_STATE_INVALID_JSON",
   "HARNESS_SCHEMA_UNSUPPORTED",
   "HARNESS_PROJECT_MISMATCH",
@@ -103,9 +142,14 @@ const KNOWN_ERRORS = new Set([
   "HARNESS_STATE_TOO_LARGE",
   "HARNESS_STATE_LIMIT_EXCEEDED",
   "HARNESS_SECRET_DETECTED",
-  "TASK_METADATA_STORE_UNAVAILABLE",
-  "TASK_METADATA_INDEX_TOO_LARGE",
-  "TASK_METADATA_LOCK_TIMEOUT"
+  "SESSION_METADATA_INVALID_REQUEST",
+  "SESSION_METADATA_INVALID_RECORD",
+  "SESSION_METADATA_STORE_UNAVAILABLE",
+  "SESSION_METADATA_LOCK_TIMEOUT",
+  "SESSION_SOURCE_READONLY",
+  "AGENT_SERVICE_UNAVAILABLE",
+  "WORKSPACE_UNAVAILABLE",
+  "WORKSPACE_PATH_INVALID"
 ]);
 
 function knownError(error: unknown): string | null {
@@ -116,26 +160,84 @@ function knownError(error: unknown): string | null {
 /** Local boundary for session operations, read-only Harness inspection, and the allowlisted Agent surface. */
 export class SessionService {
   private readonly handledRequestIds = new Set<string>();
+  private readonly runtimeBindings = new Map<string, string>();
+  private readonly journal = new EventJournal();
+  private readonly ignoredRuntimeFrames = new Map<string, number>();
   private eventSink: (event: HostEvent) => void = () => undefined;
   private agentService: AgentServiceApi | null = null;
-
+  private workspace: WorkspaceApi | null = null;
   constructor(
     private readonly sessions: OmpSessionAdapter,
     private readonly harness: HarnessInspectorApi | null = null,
     private readonly mutations: HarnessMutationApi | null = null,
-    private readonly taskMetadata: TaskMetadataStoreApi | null = null
-  ) {}
+    sessionMetadata: SessionMetadataApi | null = null
+  ) {
+    this.sessionMetadata = sessionMetadata;
+  }
+
+  private sessionMetadata: SessionMetadataApi | null;
+
+  private runtimeId(sessionId: string): string {
+    return this.runtimeBindings.get(sessionId) ?? sessionId;
+  }
 
   setAgentService(agentService: AgentServiceApi): void {
     this.agentService = agentService;
+  }
+
+  setSessionMetadata(sessionMetadata: SessionMetadataApi): void {
+    this.sessionMetadata = sessionMetadata;
+  }
+
+  setWorkspace(workspace: WorkspaceApi): void {
+    this.workspace = workspace;
   }
 
   setEventSink(eventSink: (event: HostEvent) => void): void {
     this.eventSink = eventSink;
   }
 
+  /** Frames consumed without a timeline counterpart (diagnostics counter). */
+  ignoredFrameCount(sessionId: string): number {
+    return this.ignoredRuntimeFrames.get(sessionId) ?? 0;
+  }
+
+  /**
+   * Single outbound sequencer: raw Runtime frames and agent-state records are
+   * translated into protocol/domain timeline events, sequenced per session,
+   * journaled for replay, and forwarded under `name: "timeline"`. The incoming
+   * envelope sequence (minted by the agent services) is intentionally
+   * superseded by the journaled payload `seq`.
+   */
   emit(event: HostEvent): void {
-    this.eventSink(event);
+    let translated: Omit<TimelineEvent, "v" | "seq" | "sessionId">[];
+    if (event.name === "runtime.frame") {
+      const result = translateFrame((event.payload ?? {}) as Record<string, unknown>);
+      translated = result.events;
+      if (result.ignored > 0) {
+        this.ignoredRuntimeFrames.set(event.sessionId, (this.ignoredRuntimeFrames.get(event.sessionId) ?? 0) + result.ignored);
+      }
+    } else if (event.name === "agent.state") {
+      const state = (event.payload as { state?: unknown } | undefined)?.state;
+      if (typeof state !== "string" || !(state in VALID_RUN_STATES)) return;
+      translated = [runStateEvent(state as RunStateValue)];
+    } else {
+      return;
+    }
+    for (const unsequenced of translated) {
+      const sequenced = this.journal.append(event.sessionId, {
+        ...unsequenced,
+        v: 1,
+        sessionId: event.sessionId
+      });
+      this.eventSink({
+        type: "event",
+        sessionId: event.sessionId,
+        sequence: sequenced.seq,
+        name: TIMELINE_EVENT_NAME,
+        payload: sequenced
+      });
+    }
   }
 
   async dispatch(input: unknown): Promise<HostResponse> {
@@ -199,19 +301,28 @@ export class SessionService {
           if (!this.agentService || typeof input.sessionId !== "string" || typeof input.prompt !== "string") {
             return responseError(requestId, "INVALID_REQUEST");
           }
-          return { type: "response", requestId, ok: true, value: await this.agentService.start(input.sessionId, input.prompt) };
+          return { type: "response", requestId, ok: true, value: await this.agentService.start(this.runtimeId(input.sessionId), input.prompt) };
         case "agent.stop":
           if (!this.agentService || typeof input.sessionId !== "string") return responseError(requestId, "INVALID_REQUEST");
-          return { type: "response", requestId, ok: true, value: await this.agentService.stop(input.sessionId) };
+          return { type: "response", requestId, ok: true, value: await this.agentService.stop(this.runtimeId(input.sessionId)) };
         case "interaction.respond":
-          if (!this.agentService || typeof input.sessionId !== "string" || typeof input.interactionId !== "string") {
+          if (
+            !this.agentService ||
+            typeof input.sessionId !== "string" ||
+            typeof input.interactionId !== "string" ||
+            !isRecord(input.response)
+          ) {
             return responseError(requestId, "INVALID_REQUEST");
           }
           return {
             type: "response",
             requestId,
             ok: true,
-            value: await this.agentService.respond(input.sessionId, input.interactionId, input.value)
+            value: await this.agentService.respond(
+              this.runtimeId(input.sessionId),
+              input.interactionId,
+              input.response as InteractionResponse
+            )
           };
         case "agent.command":
           if (!this.agentService || typeof input.sessionId !== "string" || !isRecord(input.command)) {
@@ -222,28 +333,84 @@ export class SessionService {
             type: "response",
             requestId,
             ok: true,
-            value: await this.agentService.command(input.sessionId, input.command)
+            value: await this.agentService.command(this.runtimeId(input.sessionId), input.command)
           };
-        case "task.metadata.get":
-          if (!this.taskMetadata) return responseError(requestId, "TASK_METADATA_STORE_UNAVAILABLE");
+        case "events.replay": {
+          if (!isValidSessionId(input.sessionId) || typeof input.afterSeq !== "number") {
+            return responseError(requestId, "INVALID_REQUEST");
+          }
+          // Journals are keyed by the emitting Host route; resolve the bound
+          // route for a canonical session id, else replay from the raw id.
+          let journalKey = input.sessionId;
+          for (const [canonical, route] of this.runtimeBindings) {
+            if (canonical === input.sessionId) journalKey = route;
+          }
+          return { type: "response", requestId, ok: true, value: this.journal.since(journalKey, input.afterSeq) };
+        }
+        case "session.views": {
+          if (!this.sessionMetadata || !this.agentService) {
+            return responseError(requestId, "SESSION_METADATA_STORE_UNAVAILABLE");
+          }
+          const records = await this.sessions.listReadOnly();
+          const runStates: Record<string, AgentState | null> = {};
+          for (const record of records) runStates[record.id] = this.agentService.stateOf(this.runtimeId(record.id));
+          const pruned = await this.sessionMetadata.prune(records.map((record) => record.id));
+          const metadata = await this.sessionMetadata.get();
           return {
             type: "response",
             requestId,
             ok: true,
-            value: { index: await this.taskMetadata.get() }
+            value: { ...assembleSessionViews(records, runStates), pruned, metadata }
           };
-        case "task.metadata.set": {
-          if (!this.taskMetadata) return responseError(requestId, "TASK_METADATA_STORE_UNAVAILABLE");
-          const sessionId = parseSessionId(input.sessionId);
-          if (!sessionId.ok) return responseError(requestId, "TASK_METADATA_INVALID_SESSION_ID");
+        }
+        case "session.metadata.set": {
+          if (!this.sessionMetadata) {
+            return responseError(requestId, "SESSION_METADATA_STORE_UNAVAILABLE");
+          }
+          if (!isValidSessionId(input.sessionId)) {
+            return responseError(requestId, "SESSION_METADATA_INVALID_SESSION_ID");
+          }
+          if (!isRecord(input.patch)) return responseError(requestId, "INVALID_REQUEST");
           const patch = validateMetadataPatch(input.patch);
           if (!patch.ok) return responseError(requestId, patch.code);
-          return {
-            type: "response",
-            requestId,
-            ok: true,
-            value: { record: await this.taskMetadata.set(sessionId.value, patch.value) }
-          };
+          const record = await this.sessionMetadata.set(input.sessionId, patch.value);
+          return { type: "response", requestId, ok: true, value: { record } };
+        }
+        case "session.open_runtime": {
+          if (!this.agentService) {
+            return responseError(requestId, "AGENT_SERVICE_UNAVAILABLE");
+          }
+          if (!isValidSessionId(input.sessionId)) {
+            return responseError(requestId, "SESSION_METADATA_INVALID_SESSION_ID");
+          }
+          const routeSessionId = typeof input.routeSessionId === "string" ? input.routeSessionId : input.sessionId;
+          const records = await this.sessions.listReadOnly();
+          const target = records.find((record) => record.id === input.sessionId);
+          if (!target) return responseError(requestId, "SESSION_NOT_FOUND");
+          // Continuation writes belong to desktop copies only — a history
+          // file must never receive a live Runtime (source-session promise).
+          if (target.writeMode !== "desktop-owned") {
+            return responseError(requestId, "SESSION_SOURCE_READONLY");
+          }
+          // Host derives the path internally; the renderer only ever sent id.
+          await this.agentService.command(routeSessionId, {
+            type: "switch_session",
+            sessionPath: target.sourcePath
+          });
+          this.runtimeBindings.set(target.id, routeSessionId);
+          return { type: "response", requestId, ok: true, value: { sessionId: target.id, state: "ready" } };
+        }
+        case "workspace.status": {
+          if (!this.workspace) return responseError(requestId, "WORKSPACE_UNAVAILABLE");
+          const listing: unknown = await this.workspace.status();
+          return { type: "response", requestId, ok: true, value: listing };
+        }
+        case "workspace.diff": {
+          if (!this.workspace) return responseError(requestId, "WORKSPACE_UNAVAILABLE");
+          const check = validateRelativePath(String(input.path ?? ""));
+          if (!check.ok) return responseError(requestId, check.code);
+          const diff: unknown = await this.workspace.diff(check.value);
+          return { type: "response", requestId, ok: true, value: diff };
         }
         default:
           return responseError(requestId, "UNKNOWN_COMMAND");

@@ -7,12 +7,66 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Fixed a first-real-session fatal bug on clean machines: the Bun-compiled
+  Host resolves `pi_natives.win32-x64-*.node` at runtime, and the bundle did
+  not ship it — the first agent turn died with MODULE_NOT_FOUND behind a
+  perpetual "正在加载会话…" screen (red-team attack 2, now closed).
+  `prepare:bundle` stages the exact-version natives from
+  `@oh-my-pi/pi-natives-win32-x64` (version-checked against the Runtime pin),
+  records its SHA-256 in `bundle-evidence.json`, and the installers carry it
+  beside the Host binary.
+- `prepare:bundle` accepts `BUNDLE_NODE_EXE` to point the Node 24.19.0 probe
+  at an explicit portable install without touching system PATH.
+- The compiled-Host fixture smoke now drives the journaled timeline protocol
+  (domain kinds + `response` patch answers) and is hang-proof via a race
+  deadline instead of relying on inbound frames to tick the timeout.
+- Added mid-turn steering: while the agent is running the composer stays live
+  and sending injects a `steer` message instead of queueing a new prompt.
+- Added a slash-command palette in the composer (`/new`, `/compact [说明]`,
+  `/export`, `/stats`) with prefix filtering and keyboard navigation; commands
+  map 1:1 onto the Host-allowlisted Runtime command surface.
+- Tool cards now show Chinese tool labels alongside protocol names.
+- Fixed `set_model`: the Runtime contract requires `{provider, modelId}` — the
+  previous bare `{model}` frame silently no-opped, and the available-models
+  list was flattened to an empty array. The model picker now carries
+  provider/model pairs from `get_available_models`.
 
+- Added a journaled timeline protocol as the single renderer↔Host live-event
+  contract (`protocol/domain.ts`): the Desktop Host now translates raw OMP
+  Runtime frames into domain events (`message.*`, `tool.*`,
+  `interaction.requested`, `run.state`), assigns per-session monotonic
+  sequences, and replays them through the new `events.replay` command.
+  Switching back to a session no longer loses in-flight tool cards or the
+  streaming bubble — buffered live events merge with the journaled replay, and
+  sequence gaps fail visible (re-hydration) instead of silently dropping state.
+- Fixed a wire-contract bug in interaction answers: the Runtime resolves
+  dialogs by reading TOP-LEVEL `confirmed` / `value` / `cancelled` fields of
+  the whole `extension_ui_response` frame, so the previous nested-value answer
+  made every confirm dialog silently resolve as "deny". Answers are now
+  validated (`InteractionResponse`) and spread at the Host boundary.
+- Added method-aware interaction cards: permission confirms show the action
+  description with 允许/拒绝, selects render their options, inputs carry
+  placeholders (editor falls back to a textarea), and every card offers an
+  explicit cancel that resolves the Runtime dialog with its default.
+- Runtime-side dialog cancellations now close the matching ask card, and
+  fire-and-forget notifications render as level-tagged system notes instead of
+  phantom question cards. Non-interactive side-channel UI methods no longer
+  reach the timeline.
+- The workspace Changes/Diff panel colorizes unified-diff rows (add/delete/
+  hunk/meta) instead of rendering a plain pre block.
+- Failed sessions expose a 重新绑定运行时 recovery action alongside 重试上一条指令.
 - Added the Stage 3C human-governed Harness review flow in the desktop UI: author a project-scoped memory proposal, inspect the Host-built preview, then apply it with an explicit approver name and reason (an automatic pre-write snapshot makes every apply reversible) or roll back to the latest snapshot. Approved proposals persist in Harness state only — they do not affect Runtime prompts yet — and global scope remains unsupported.
 - Added the Stage 2 read-only Harness Inspector path from the renderer bridge through Tauri to the compiled Host. Harness state lives outside OMP session files and is rejected when malformed, incompatible, oversized, project-mismatched, schema-invalid, or secret-bearing.
 - Added a Chinese-first, read-only Harness Inspector dialog with project compatibility, collection counts, bounded entry previews, explicit empty/error states, and session-bound async results.
 
 ### Changed
+
+- Completed the Session Workbench v1 cutover: the Vite/React `renderer-next`
+  bundle is now the only shipping UI, with real Tauri transport and no legacy
+  no-bundler renderer, fixture transport, or paused task-model surface.
+- Renamed the workbench's organization metadata and listing surface around
+  sessions (`session.views` and `session.metadata.*`); session identity remains
+  the primary product model.
 
 - Localized the live desktop interface for Chinese-first use, while keeping model, tool, command, and protocol identifiers in their original form with Chinese hover explanations.
 - Localized the tuning panel labels and option descriptions without changing their persisted values or behavior.
@@ -22,7 +76,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- Synchronized the Windows application package version with the `v0.1.3` release tag so generated installer filenames and upgrade metadata report the published version.
+- Synchronized the Windows application package version with the `v0.1.4` release tag so generated installer filenames and upgrade metadata report the published version.
 
 - Tab switch drops all tool cards from chat — `get_messages` returns only text entries; tool/ask/compact cards live exclusively in live event state. Fixed by merging `get_messages` ground-truth text into the existing snapshot (preserving tool cards in-place) instead of replacing `state.messages` wholesale. `activeToolCards` indices are rebuilt after merge so in-flight `tool_execution_update` events continue landing correctly.
 - Minimap cell stuck pulsating after tab switch — `streamingBubble` restored from snapshot was never cleared when `get_state` reported `isStreaming: false` (turn completed while away); `_applyRpcState` now retires the bubble and strips `streaming: true` entries from `state.messages` immediately, before `get_messages` arrives.

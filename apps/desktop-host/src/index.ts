@@ -9,7 +9,8 @@ import { defaultHarnessDataRoot, harnessProjectId, HarnessStore } from "./harnes
 import { HarnessMutationExecutor } from "./harness-mutation-executor";
 import { HarnessMutationService } from "./harness-mutation-service";
 import { join } from "node:path";
-import { TaskMetadataStore } from "./task-metadata-store";
+import { SessionMetadataStore } from "./session-metadata-store";
+import { collectStatus, buildDiff, nodeExec } from "./workspace";
 
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
@@ -36,10 +37,15 @@ export function createHostSessionService(cwd: string, paths: ProfilePaths): Sess
   const harnessDataRoot = defaultHarnessDataRoot();
   const inspector = new HarnessStore(cwd, harnessDataRoot);
   const mutations = new HarnessMutationService(cwd, inspector, new HarnessMutationExecutor(cwd, harnessDataRoot));
-  const taskMetadata = new TaskMetadataStore(
-    join(harnessDataRoot, "OMP Desktop", "tasks", "projects", harnessProjectId(cwd), "task-metadata.json")
+  const sessionMetadata = new SessionMetadataStore(
+    join(harnessDataRoot, "OMP Desktop", "sessions", "projects", harnessProjectId(cwd), "metadata.json")
   );
-  return new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations, taskMetadata);
+  const sessions = new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations, sessionMetadata);
+  sessions.setWorkspace({
+    status: () => collectStatus(cwd, nodeExec),
+    diff: (path) => buildDiff(cwd, path, nodeExec)
+  });
+  return sessions;
 }
 
 async function runHost(): Promise<void> {

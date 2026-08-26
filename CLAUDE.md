@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Windows-only Tauri 2 desktop shell for `omp` (oh-my-pi). The React UI is loaded
-from `src/` by Tauri's asset server. **No bundler** — JSX is transpiled in the
-WebView by the vendored `@babel/standalone`.
+Windows-only Tauri 2 desktop shell for `omp` (oh-my-pi). The shipping React UI
+is built by Vite from `renderer-next/` and loaded from its compiled `dist/`
+directory by Tauri.
 
 Rust does not spawn `omp` directly. Rust starts one verified Bun-compiled
 Desktop Host per UI tab; that Host owns the pinned OMP Runtime 17.4.1 process
@@ -75,22 +75,17 @@ Three runtime layers:
    - `omp-vendor.ts` is the only production module that imports `@oh-my-pi/*`.
    - OMP package and Runtime versions remain pinned exactly to `17.4.1`.
 
-3. **Legacy no-bundler frontend (`src/`)**
-   - `live.js` adapts Host events into per-tab renderer state.
-   - `app/harness-client.js` exposes the read-only Harness command and the
-     three explicit human-approval mutation commands.
-   - `app-live.jsx` is the sole React root.
-   - `src/design/**` is the authoritative live UI source.
-   - `src/index.html` script order is the dependency graph.
-
-4. **Next renderer scaffold (`renderer-next/`)** — branch-only, not shipped
-   - Vite + React + TypeScript workbench shell consuming typed product DTOs
-     (`apps/desktop-host/src/product-contracts.ts`) through the swappable
-     `ProductBridge` seam; plan 1 ships only the fixture transport built from
-     the frozen projection vectors.
+3. **Renderer (`renderer-next/`)** — Vite + React + TypeScript shipping workbench
+   - The production Tauri entry builds and packages `renderer-next/dist`.
+   - `ProductBridge` is the only renderer transport; production uses the real
+     Tauri bridge and tests inject IPC seams without a fixture transport.
    - Bun-managed exclusively (`renderer-next/bun.lock` committed); installs go
-     through `npm run next:install` (`--frozen-lockfile`). The shipping entry
-     stays `src/index.html` until the plan-4 cutover switches it.
+     through `npm run next:install` (`--frozen-lockfile`).
+   - Live events use the shared contract in `../protocol/domain.ts` (imported
+     by BOTH the Host and the renderer; keep it dependency-free). The Host
+     translates OMP frames to domain events, journals them per session, and
+     serves catch-up via the `events.replay` op; the renderer reducer consumes
+     only that vocabulary.
 
 ## Session model
 
@@ -121,28 +116,11 @@ renderer-reachable Harness write surface:
   session files are never written, no system `omp` binary is involved, and
   approved memories do not affect Runtime prompts (a later stage).
 
-## Frontend load order (`src/index.html`)
+## Renderer source
 
-Script order **is** the dependency graph:
-
-1. Vendored libs: React, ReactDOM, Babel, `marked.min.js`, `highlight.min.js` + marked-wiring inline.
-2. Tweaks: `tweaks/style.js`, `tweaks/use-tweaks.js` (plain, IIFE) → `tweaks/panel.jsx`, `tweaks/controls.jsx` (Babel; controls depends on panel).
-3. UI primitives: `ui/icons.jsx` (defines `Icon`, `TOOL_META`) → `ui/sparks.jsx` → `ui/markdown.jsx` → `ui/plan-annotations.jsx`.
-4. Chat: `chat/user-bubble.jsx` → `chat/eval-cell.jsx` → `chat/assistant-bubble.jsx` → `chat/tool-card.jsx` → `chat/ask-bubble.jsx` → `chat/chat-view.jsx`.
-5. `design/composer.jsx`, `design/chrome.jsx`, `design/panels.jsx`, `design/harness/proposal-review.jsx`, `design/harness/inspector.jsx`.
-6. Live data: `model-names.js` → `adapter.js` → `app/harness-client.js` → `live.js`.
-7. App helpers: `app/constants.js` (plain, IIFE) → `app/use-bridge-snapshot.jsx`.
-8. `app-live.jsx` last.
-
-When adding a file, insert at the correct point — there is no resolver to catch ordering bugs.
-
-### IIFE rule
-
-Plain `<script>` tags share document top-level scope; Babel `type="text/babel"` scripts intersect with it via destructures. Every plain script declaring top-level `const`/`function`/`class` **MUST** be `(function(){ …; window.X = X; })();` — see `app/constants.js`, `tweaks/style.js`, `tweaks/use-tweaks.js`. Bare `window.X = {…}` assignments are fine (`model-names.js`). Babel-transformed files do not need wrapping.
-
-## Authoritative source
-
-`src/design/` is the live-wired copy. Root-level `design/` is a gitignored read-only prototype reference. **Never** regenerate `src/design/` from `design/` — it overwrites bridge wiring. Edit `src/design/` directly.
+`renderer-next/src/` is the authoritative UI source. Vite resolves the module
+graph and emits the offline bundle consumed by Tauri; there is no legacy
+no-bundler renderer or fixture transport in the shipping tree.
 
 ## God-file prevention
 
@@ -163,7 +141,7 @@ Rules:
 3. Co-locate primitives only when one is a private helper of the other (`InlinePlan` with `AssistantBubble`).
 4. CSS splits by visual layer, not component. Don't sub-split `chat.css` unless a layer exceeds ~150 lines.
 5. Rust modules split by concern when there are multiple `pub` surfaces or a long private helper section.
-6. After splitting, update `src/index.html` script order in dependency order — never append.
+  6. Keep the Vite module graph explicit and avoid importing Host/Rust modules into the renderer.
 7. Don't extract for symmetry. Tightly-related layers (e.g. `chrome.jsx`) stay together.
 
 Trigger: 6th major component in one file, or 4th unrelated concern in one Rust module → split before further growth.
@@ -174,10 +152,12 @@ Trigger: 6th major component in one file, or 4th unrelated concern in one Rust m
 - Host framed reader (`host.rs` `read_local_frame`): clean EOF is allowed only before a new 4-byte little-endian header (`Ok(0)` at offset 0); a partial header or payload must fail as `HOST_FRAME_TRUNCATED`, never silently break the reader loop.
 - Window controls use document-level click delegation (React mounts after `DOMContentLoaded`); `querySelector` in `_setupWindowChrome` would miss it.
 - `set_model` response **must** call `notify()` immediately, else next `turn_start` re-emits stale `state.model` and UI reverts.
-- Long `if/else if` chains in `_handleResponse` (`live.js`): a single misplaced `}` cascades — `_handleResponse` never closes, IIFE syntax errors, `window.OMP_DATA` never set. Re-verify brace structure when inserting branches.
 - Frameless window via DWM: `decorations: false` + `platform.css` strips outer padding/shadow under `.tauri-native`. CSS uses `color-mix(in oklab, …)` — needs WebView2 ≥ 101.
 - Strict CSP: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; …`. Asset protocol disabled. `tauri-plugin-shell` deliberately removed. Don't add CDN tags or `convertFileSrc()` without revisiting both.
-- Thinking levels are RPC-driven. Cycle = `cycle_thinking_level` (response carries new level). Set = `set_thinking_level`. Valid: `off | minimal | low | medium | high | xhigh`. Never invent fallbacks like `auto`/`extended` — RPC silently ignores them.
+- Timeline events are domain vocabulary from `protocol/domain.ts` with a
+  monotonic per-session `seq`. Never re-introduce raw OMP frame names in the
+  renderer; a seq gap marks the timeline desynced and recovery is re-hydration
+  (`mergeMessagePage`), never guessing.
 - No CDN dependencies. React/ReactDOM/Babel/marked/hljs are vendored. App must work offline.
 
 ## Code style
@@ -233,7 +213,15 @@ All non-trivial code **must** have test coverage before committing. This is not 
 
 ## CI / release
 
-- `.github/workflows/ci.yml` runs `npm run verify` on Windows.
+- `prepare:bundle` hard-pins Node v24.19.0 (probed via `node --version`).
+  Machines whose default Node differs must set `BUNDLE_NODE_EXE` to an
+  absolute v24.19.0 binary (portable installs work); the pin itself never
+  loosens.
+- The bundle MUST carry `pi_natives.win32-x64-baseline.node` beside the Host
+  binary: the compiled Host resolves it at runtime and a missing file kills
+  the first real session with MODULE_NOT_FOUND. `prepare:bundle` stages it
+  from `@oh-my-pi/pi-natives-win32-x64` and hash-binds it into
+  `bundle-evidence.json`.
 - `.github/workflows/release.yml` fetches and verifies the pinned official OMP
   Runtime, runs the same verification gate, then builds Windows MSI and NSIS
   artifacts.

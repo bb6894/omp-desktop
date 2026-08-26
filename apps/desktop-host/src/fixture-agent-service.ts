@@ -1,4 +1,5 @@
 import type { HostEvent } from "./contracts";
+import type { InteractionResponse } from "../../../protocol/domain";
 import type { AgentServiceApi } from "./session-service";
 
 /**
@@ -8,6 +9,7 @@ import type { AgentServiceApi } from "./session-service";
 export class FixtureAgentService implements AgentServiceApi {
   private sequence = 0;
   private pendingInteraction: { sessionId: string; interactionId: string } | null = null;
+  private readonly states = new Map<string, AgentState>();
 
   constructor(private readonly onEvent: (event: HostEvent) => void) {}
 
@@ -44,7 +46,11 @@ export class FixtureAgentService implements AgentServiceApi {
     return { state: "stopped" };
   }
 
-  async respond(sessionId: string, interactionId: string, _value: unknown): Promise<unknown> {
+  async respond(
+    sessionId: string,
+    interactionId: string,
+    _response: InteractionResponse
+  ): Promise<unknown> {
     if (
       !this.pendingInteraction ||
       this.pendingInteraction.sessionId !== sessionId ||
@@ -75,13 +81,34 @@ export class FixtureAgentService implements AgentServiceApi {
     }
     return { type: "response", command: command.type, success: true, data: {} };
   }
+  stateOf(sessionId: string): AgentState | null {
+    return this.states.get(sessionId) ?? null;
+  }
 
   private emitRuntime(sessionId: string, payload: Record<string, unknown>): void {
     this.emit(sessionId, "runtime.frame", payload);
   }
 
   private emit(sessionId: string, name: string, payload: unknown): void {
+    if (name === "agent.state" && typeof payload === "object" && payload !== null && "state" in payload) {
+      const candidate: unknown = payload.state;
+      if (isAgentState(candidate)) this.states.set(sessionId, candidate);
+    }
     this.sequence += 1;
     this.onEvent({ type: "event", sessionId, sequence: this.sequence, name, payload });
   }
+}
+
+function isAgentState(value: unknown): value is AgentState {
+  return (
+    value === "idle" ||
+    value === "starting" ||
+    value === "streaming" ||
+    value === "awaiting-tool" ||
+    value === "awaiting-interaction" ||
+    value === "stopping" ||
+    value === "completed" ||
+    value === "interrupted" ||
+    value === "failed"
+  );
 }
