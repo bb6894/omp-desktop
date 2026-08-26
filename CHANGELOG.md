@@ -41,6 +41,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   deadline instead of relying on inbound frames to tick the timeout.
 - Added mid-turn steering: while the agent is running the composer stays live
   and sending injects a `steer` message instead of queueing a new prompt.
+- Live command registry: the palette merges desktop-structured commands with the Runtime's `available_commands_update` stream, showing source chips (builtin/skill/mcp/extension) and argument hints; runtime commands execute via `prompt('/name args')` with output rendered as system notes.
+- Full OMP terminal slash surface: `ALLOWED_AGENT_COMMANDS` grows 17 → 36, exposing `bash`, `branch`, `handoff`, `set_fast_mode`, `set_auto_compaction`, `set_steering_mode`, `set_follow_up_mode`, `set_interrupt_mode`, `abort_and_prompt`, and others — the renderer can now invoke any Runtime slash command the terminal supports.
+- Bang shell `!cmd` in the composer: dispatches to the Runtime as a bash prompt (gated through the approval engine at exec tier).
+- Queue counter badge: when the agent is mid-turn, sending a new prompt queues as followUp and the badge shows the queued count; the user can see pending messages without losing them.
+- Right-panel 运行开关: toggles for fast mode, auto-compaction, and steering/follow-up/interrupt modes driven by live `WorkbenchState` fields fetched from the Runtime (`tokensPerSecond`, `contextUsage.percent`, `queuedMessageCount` surfaced too).
 - Added a slash-command palette in the composer (`/new`, `/compact [说明]`,
   `/export`, `/stats`) with prefix filtering and keyboard navigation; commands
   map 1:1 onto the Host-allowlisted Runtime command surface.
