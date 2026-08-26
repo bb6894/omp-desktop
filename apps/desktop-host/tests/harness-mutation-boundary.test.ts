@@ -50,7 +50,6 @@ test("mutation modules stay inside the offline import allowlist", async () => {
 test("the Stage 3C mutation seam stays out of generic routing surfaces", async () => {
   const paths = [
     resolve(import.meta.dir, "../src/contracts.ts"),
-    resolve(import.meta.dir, "../../../src/index.html")
   ];
   for (const path of paths) {
     const source = await readFile(path, "utf8");

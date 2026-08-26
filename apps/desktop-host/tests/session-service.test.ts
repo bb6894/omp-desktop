@@ -176,11 +176,11 @@ test("forwards only the allowlisted agent command surface to the runtime service
     type: "agent.command", requestId: "blocked", sessionId: "desktop-1", command: { type: "arbitrary" }
   })).resolves.toMatchObject({ ok: false, code: "COMMAND_NOT_ALLOWED" });
   await expect(service.dispatch({
-    type: "interaction.respond", requestId: "answer", sessionId: "desktop-1", interactionId: "ui-1", value: "yes"
+    type: "interaction.respond", requestId: "answer", sessionId: "desktop-1", interactionId: "ui-1", response: { confirmed: true }
   })).resolves.toMatchObject({ ok: true });
   expect(calls).toEqual([
     ["command", "desktop-1", { type: "get_state" }],
-    ["respond", "desktop-1", "ui-1", "yes"]
+    ["respond", "desktop-1", "ui-1", { confirmed: true }]
   ]);
 });
 
@@ -259,7 +259,7 @@ test("rejects undeclared top-level fields including renderer-supplied paths", as
       requestId: "closed-7",
       sessionId: "desktop-1",
       interactionId: "ui-1",
-      value: "yes",
+      response: { value: "yes" },
       path: "C:\\interaction"
     },
     {

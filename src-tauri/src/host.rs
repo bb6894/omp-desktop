@@ -376,7 +376,7 @@ fn handle_host_frame(
         return;
     }
     if frame.get("type").and_then(Value::as_str) == Some("event") {
-        if frame.get("name").and_then(Value::as_str) == Some("runtime.frame") {
+        if frame.get("name").and_then(Value::as_str) == Some("timeline") {
             if let Some(payload) = frame.get("payload") {
                 let event = format!("agent://line/{session_id}");
                 let _ = app.emit(&event, payload.to_string());

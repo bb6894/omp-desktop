@@ -50,6 +50,9 @@ jobs:
       - name: Install Host dependencies
         run: bun install --cwd apps/desktop-host --frozen-lockfile
 
+      - name: Install Renderer dependencies
+        run: npm run next:install
+
       - name: Fetch pinned OMP Runtime
         run: npm run runtime:fetch
 
