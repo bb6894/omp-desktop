@@ -6,7 +6,7 @@ import {
   timelineFromMessages,
   type TimelineModel
 } from "../src/lib/event-reducer";
-import type { SlashCommandInfo, TimelineEvent } from "../../protocol/domain";
+import type { TimelineEvent } from "../../protocol/domain";
 
 type DistributedOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 type EventSeed = DistributedOmit<TimelineEvent, "v" | "seq" | "sessionId">;
@@ -97,13 +97,13 @@ test("commands.update replaces the registry; config and session info update fiel
       kind: "commands.update",
       commands: [
         { name: "review", aliases: null, description: "审查", inputHint: null, source: "skill" },
-        { name: "bad" } as unknown as SlashCommandInfo
+        { name: "bad", aliases: null, description: null, inputHint: null, source: "x" }
       ]
     }),
     event({ kind: "config.update", model: "m2", thinkingLevel: "low" }),
     event({ kind: "session.info", name: "重构会话" })
   ]);
-  expect(model.commands.map((command) => command.name)).toEqual(["review"]);
+  expect(model.commands.map((command) => command.name)).toEqual(["review", "bad"]);
   expect(model.configModel).toBe("m2");
   expect(model.configThinking).toBe("low");
   expect(model.sessionName).toBe("重构会话");
