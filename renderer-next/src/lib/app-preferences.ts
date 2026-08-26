@@ -7,6 +7,8 @@
 export type AppPreferences = {
   lastProjectPath: string | null;
   lastSessionId: string | null;
+  /** Per-session reviewed workspace file paths (diff review marks). */
+  reviewedFiles: Record<string, readonly string[]>;
 };
 
 export type StorageLike = {
@@ -17,7 +19,7 @@ export type StorageLike = {
 const KEY = "omp.renderer-next.workbench";
 
 export function defaultPreferences(): AppPreferences {
-  return { lastProjectPath: null, lastSessionId: null };
+  return { lastProjectPath: null, lastSessionId: null, reviewedFiles: {} };
 }
 
 function memoryStorage(): StorageLike {
@@ -45,6 +47,13 @@ function parsePreferences(value: unknown): AppPreferences {
     if ((key === "lastProjectPath" || key === "lastSessionId") && (field === null || typeof field === "string")) {
       result[key] = field;
     }
+    if (key === "reviewedFiles" && typeof field === "object" && field !== null && !Array.isArray(field)) {
+      for (const [sessionId, paths] of Object.entries(field)) {
+        if (Array.isArray(paths) && paths.every((path) => typeof path === "string")) {
+          result.reviewedFiles[sessionId] = paths;
+        }
+      }
+    }
   }
   return result;
 }
@@ -65,7 +74,7 @@ export function loadAppPreferences(storage: StorageLike = safeStorage()): AppPre
   }
 }
 
-export function saveAppPreferences(prefs: AppPreferences, storage: StorageLike = safeStorage()): void {
+export function saveAppPreferences(prefs: Partial<AppPreferences>, storage: StorageLike = safeStorage()): void {
   try {
     storage.setItem(KEY, JSON.stringify({ ...defaultPreferences(), ...prefs }));
   } catch {

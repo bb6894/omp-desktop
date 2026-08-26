@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { SessionViewData } from "../lib/session-lifecycle";
+import { loadAppPreferences, saveAppPreferences } from "../lib/app-preferences";
 import { parseUnifiedDiff } from "../lib/diff-view";
 import {
   useProductBridge,
@@ -39,6 +40,7 @@ export function RightPanel({
   const [diff, setDiff] = useState<WorkspaceDiff | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewed, setReviewed] = useState<readonly string[]>([]);
 
   const loadChanges = useCallback(async () => {
     setLoading(true);
@@ -51,6 +53,30 @@ export function RightPanel({
       setLoading(false);
     }
   }, [bridge]);
+
+  useEffect(() => {
+    setReviewed(session === null ? [] : loadAppPreferences().reviewedFiles[session.id] ?? []);
+  }, [session]);
+
+  const persistReviewed = useCallback(
+    (paths: readonly string[]) => {
+      setReviewed(paths);
+      if (session === null) return;
+      const prefs = loadAppPreferences();
+      saveAppPreferences({
+        ...prefs,
+        reviewedFiles: { ...prefs.reviewedFiles, [session.id]: paths }
+      });
+    },
+    [session]
+  );
+
+  const toggleReviewed = useCallback(
+    (path: string) => {
+      persistReviewed(reviewed.includes(path) ? reviewed.filter((item) => item !== path) : [...reviewed, path]);
+    },
+    [persistReviewed, reviewed]
+  );
 
   const loadDiff = useCallback(
     async (path: string) => {
@@ -162,19 +188,46 @@ export function RightPanel({
           {!loading && status !== null && status.files.length === 0 && (
             <p className="workspace-empty">没有未提交的变更。</p>
           )}
+          {status !== null && status.files.length > 0 && (
+            <p className="workspace-note">
+              已审 {reviewed.filter((path) => status.files.some((file) => file.path === path)).length}
+              /{status.files.length}
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={() => persistReviewed(status.files.map((file) => file.path))}
+              >
+                全部标记已审
+              </button>
+            </p>
+          )}
           <ul className="workspace-files">
             {(status?.files ?? []).map((file: WorkspaceFileEntry) => (
               <li key={file.path}>
-                <button
-                  type="button"
+                <div
                   className={
-                    "workspace-file" + (file.path === diffPath ? " workspace-file--active" : "")
+                    "workspace-file" +
+                    (file.path === diffPath ? " workspace-file--active" : "") +
+                    (reviewed.includes(file.path) ? " workspace-file--reviewed" : "")
                   }
-                  onClick={() => void loadDiff(file.path)}
                 >
-                  <span className="workspace-file__code">{file.code}</span>
-                  <span className="workspace-file__path">{file.path}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="workspace-file__open"
+                    onClick={() => void loadDiff(file.path)}
+                  >
+                    <span className="workspace-file__code">{file.code}</span>
+                    <span className="workspace-file__path">{file.path}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="workspace-file__mark"
+                    title={reviewed.includes(file.path) ? "取消已审标记" : "标记为已审"}
+                    onClick={() => toggleReviewed(file.path)}
+                  >
+                    {reviewed.includes(file.path) ? "✓" : "○"}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

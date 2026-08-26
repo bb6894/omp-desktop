@@ -25,7 +25,11 @@ function view(id: string, updatedAt: string, projectPath = "C:\\proj-a"): Select
 describe("preferences round-trip", () => {
   test("save then load preserves both fields", () => {
     const storage = memoryStorage();
-    const prefs: AppPreferences = { lastProjectPath: "C:\\proj-a", lastSessionId: "s-1" };
+    const prefs: AppPreferences = {
+      lastProjectPath: "C:\\proj-a",
+      lastSessionId: "s-1",
+      reviewedFiles: { "s-1": ["src/a.ts"] }
+    };
     saveAppPreferences(prefs, storage);
     expect(loadAppPreferences(storage)).toEqual(prefs);
   });
@@ -45,7 +49,8 @@ describe("preferences round-trip", () => {
     };
     expect(loadAppPreferences(storage)).toEqual({
       lastProjectPath: null,
-      lastSessionId: "keep"
+      lastSessionId: "keep",
+      reviewedFiles: {}
     });
   });
 
@@ -72,12 +77,12 @@ const SESSIONS = [
 describe("resolveStartupSelection", () => {
   test("restores the exact stored pair when it still exists", () => {
     expect(
-      resolveStartupSelection({ lastProjectPath: "C:\\proj-b", lastSessionId: "mid-b" }, SESSIONS)
+      resolveStartupSelection({ lastProjectPath: "C:\\proj-b", lastSessionId: "mid-b", reviewedFiles: {} }, SESSIONS)
     ).toBe("mid-b");
   });
 
   test("falls back to the most recent session of the stored project", () => {
-    expect(resolveStartupSelection({ lastProjectPath: "C:\\proj-a", lastSessionId: "gone" }, SESSIONS)).toBe(
+    expect(resolveStartupSelection({ lastProjectPath: "C:\\proj-a", lastSessionId: "gone", reviewedFiles: {} }, SESSIONS)).toBe(
       "newest"
     );
   });

@@ -1109,3 +1109,42 @@ body {
 .tl-card__output--code {
   border-top: 1px solid rgba(128, 128, 128, 0.25);
 }
+
+/* Workspace file review marks */
+.workspace-file {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.workspace-file__open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 3px 4px;
+}
+
+.workspace-file__mark {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-dim, #8a8a93);
+  font-size: 12px;
+  padding: 3px 5px;
+}
+
+.workspace-file--reviewed .workspace-file__path {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.workspace-file--reviewed .workspace-file__mark {
+  color: #3fb96f;
+}
