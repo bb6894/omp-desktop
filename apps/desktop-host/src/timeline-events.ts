@@ -5,6 +5,8 @@ import {
   type MessageAddedEvent,
   type MessageDeltaEvent,
   type MessageFinalizedEvent,
+  type PlanPhaseView,
+  type PlanTaskView,
   type RunStateEvent,
   type RunStateValue,
   type SystemNoteEvent,
@@ -13,7 +15,6 @@ import {
   type ToolOutputEvent,
   type ToolStartedEvent
 } from "../../../protocol/domain";
-import type { RpcFrame } from "./rpc-bridge";
 
 /**
  * Pure OMP-frame → timeline-event translation. The ONLY module allowed to know
@@ -119,6 +120,51 @@ function extractApprovalToolFromFrame(
   return match ? match[1] : null;
 }
 
+/** Bounded eval-source view from the Runtime's raw tool args; null otherwise. */
+function extractEvalCode(frame: RpcFrame): { code: string | null; language: string | null } {
+  if (frame.toolName !== "eval") return { code: null, language: null };
+  const args = isRecord(frame.args) ? frame.args : {};
+  const code = typeof args.code === "string" ? args.code.slice(0, MAX_TOOL_OUTPUT_CHARS) : null;
+  const language = typeof args.language === "string" ? args.language : null;
+  return { code, language };
+}
+
+const PLAN_PHASE_CAP = 32;
+const PLAN_TASK_CAP = 100;
+const PLAN_TEXT_CAP = 500;
+
+function planTaskView(input: unknown): PlanTaskView | null {
+  if (!isRecord(input)) return null;
+  if (typeof input.content !== "string" || input.content.length === 0) return null;
+  if (typeof input.status !== "string" || input.status.length === 0) return null;
+  return {
+    content: input.content.slice(0, PLAN_TEXT_CAP),
+    status: input.status
+  };
+}
+
+/**
+ * Host-validated todo phases from the Runtime result details (`TodoToolDetails`).
+ * Anything malformed drops; caps keep a hostile result from flooding the UI.
+ */
+function extractPlanView(frame: RpcFrame): readonly PlanPhaseView[] | null {
+  if (frame.toolName !== "todo") return null;
+  const result = isRecord(frame.result) ? frame.result : {};
+  const details = isRecord(result.details) ? result.details : {};
+  if (!Array.isArray(details.phases)) return null;
+  const phases: PlanPhaseView[] = [];
+  for (const phase of details.phases.slice(0, PLAN_PHASE_CAP)) {
+    if (!isRecord(phase) || typeof phase.name !== "string" || !Array.isArray(phase.tasks)) continue;
+    const tasks: PlanTaskView[] = [];
+    for (const task of phase.tasks.slice(0, PLAN_TASK_CAP)) {
+      const view = planTaskView(task);
+      if (view) tasks.push(view);
+    }
+    phases.push({ name: phase.name.slice(0, PLAN_TEXT_CAP), tasks });
+  }
+  return phases.length > 0 ? phases : null;
+}
+
 
 export function translateFrame(frame: RpcFrame): TranslateResult {
   const events: TranslateResult["events"] = [];
@@ -174,10 +220,13 @@ export function translateFrame(frame: RpcFrame): TranslateResult {
 
     case "tool_execution_start": {
       if (typeof frame.toolCallId !== "string") return { events, ignored: 1 };
+      const evalCode = extractEvalCode(frame);
       events.push({
         kind: "tool.started",
         toolCallId: frame.toolCallId,
-        toolName: typeof frame.toolName === "string" ? frame.toolName : "unknown"
+        toolName: typeof frame.toolName === "string" ? frame.toolName : "unknown",
+        code: evalCode.code,
+        language: evalCode.language
       } satisfies Omit<ToolStartedEvent, "v" | "seq" | "sessionId">);
       return { events, ignored: 0 };
     }
@@ -198,7 +247,8 @@ export function translateFrame(frame: RpcFrame): TranslateResult {
       events.push({
         kind: "tool.finished",
         toolCallId: frame.toolCallId,
-        isError: frame.isError === true
+        isError: frame.isError === true,
+        plan: extractPlanView(frame)
       } satisfies Omit<ToolFinishedEvent, "v" | "seq" | "sessionId">);
       return { events, ignored: 0 };
     }

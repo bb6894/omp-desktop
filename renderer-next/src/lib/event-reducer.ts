@@ -1,4 +1,8 @@
-import { isLiveRunState, type RunStateValue } from "../../../protocol/domain";
+import {
+  isLiveRunState,
+  type PlanPhaseView,
+  type RunStateValue
+} from "../../../protocol/domain";
 
 /**
  * Pure timeline reconciliation over protocol/domain events. The renderer never
@@ -19,6 +23,11 @@ export type TimelineEntry =
       status: ToolStatus;
       output: string;
       truncated: boolean;
+      /** Eval-tool source; drives the code-block card body. */
+      code?: string | null;
+      language?: string | null;
+      /** Structured todo phases; drives the plan card. */
+      plan?: readonly PlanPhaseView[] | null;
     }
   | {
       kind: "ask";
@@ -182,7 +191,9 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         toolName: typeof event.toolName === "string" ? event.toolName : "unknown",
         status: "running",
         output: "",
-        truncated: false
+        truncated: false,
+        code: typeof event.code === "string" ? event.code : null,
+        language: typeof event.language === "string" ? event.language : null
       };
       return { ...based, lastSeq: event.seq, entries: replaceOrAppend(based.entries, entry) };
     }
@@ -217,10 +228,10 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         return { ...based, lastSeq: event.seq };
       }
       const status: ToolStatus = event.isError === true ? "error" : "ok";
+      const plan = Array.isArray(event.plan) ? event.plan : null;
       return {
         ...based,
-        lastSeq: event.seq,
-        entries: replaceOrAppend(based.entries, { ...target, status })
+        entries: replaceOrAppend(based.entries, { ...target, status, plan })
       };
     }
 

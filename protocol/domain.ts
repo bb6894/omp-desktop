@@ -65,6 +65,10 @@ export type MessageFinalizedEvent = TimelineEnvelope<"message.finalized"> & {
 export type ToolStartedEvent = TimelineEnvelope<"tool.started"> & {
   toolCallId: string;
   toolName: string;
+  /** Eval-tool source extracted from args by the Host; null for other tools. */
+  code?: string | null;
+  /** Eval-tool language ('py'|'js'|'rb'|'jl'); null for other tools. */
+  language?: string | null;
 };
 
 export type ToolOutputEvent = TimelineEnvelope<"tool.output"> & {
@@ -72,10 +76,18 @@ export type ToolOutputEvent = TimelineEnvelope<"tool.output"> & {
   chunk: string;
 };
 
+export type PlanTaskView = { content: string; status: string };
+
+/** Host-validated snapshot of the todo tool's phases for plan cards. */
+export type PlanPhaseView = { name: string; tasks: readonly PlanTaskView[] };
+
 export type ToolFinishedEvent = TimelineEnvelope<"tool.finished"> & {
   toolCallId: string;
   isError: boolean;
+  /** Structured todo phases extracted from the Runtime result details. */
+  plan?: readonly PlanPhaseView[] | null;
 };
+
 export type InteractionRequestedEvent = TimelineEnvelope<"interaction.requested"> & {
   interactionId: string;
   method: string | null;

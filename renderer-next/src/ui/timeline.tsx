@@ -19,6 +19,7 @@ const TOOL_LABELS: Record<string, string> = {
   task: "子任务",
   quick_task: "快速子任务",
   eval: "求值代码",
+  todo: "更新计划",
   todo_write: "更新计划",
   webfetch: "抓取网页"
 };
@@ -77,6 +78,36 @@ function EntryBubble({ entry }: { entry: TimelineEntry }) {
   );
 }
 
+const PLAN_MARK: Record<string, string> = {
+  pending: "○",
+  in_progress: "▶",
+  completed: "✓",
+  abandoned: "⨯",
+  blocked: "⛔"
+};
+
+/** Structured plan card for the Runtime's todo tool. */
+function PlanBody({ entry }: { entry: Extract<TimelineEntry, { kind: "tool" }> }) {
+  if (!entry.plan) return null;
+  return (
+    <div className="tl-card__plan" role="list" aria-label="执行计划">
+      {entry.plan.map((phase) => (
+        <div key={phase.name} className="tl-card__plan-phase" role="listitem">
+          <p className="tl-card__plan-name">{phase.name}</p>
+          <ul>
+            {phase.tasks.map((task, index) => (
+              <li key={`${task.content}-${index}`} data-status={task.status}>
+                <span aria-hidden="true">{PLAN_MARK[task.status] ?? "○"}</span>{" "}
+                <span>{task.content}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ToolCard({ entry }: { entry: Extract<TimelineEntry, { kind: "tool" }> }) {
   const [open, setOpen] = useState(false);
   return (
@@ -91,7 +122,17 @@ function ToolCard({ entry }: { entry: Extract<TimelineEntry, { kind: "tool" }> }
         <span className="tl-card__zh">{TOOL_LABELS[entry.toolName] ?? ""}</span>
         <span className="tl-card__toggle">{open ? "收起" : "展开"}</span>
       </button>
-      {open && (
+      {(entry.plan || entry.code) && (
+        <>
+          <PlanBody entry={entry} />
+          {entry.code && (
+            <pre className="tl-card__output tl-card__output--code" lang={entry.language ?? undefined}>
+              {entry.code}
+            </pre>
+          )}
+        </>
+      )}
+      {open && !entry.plan && !entry.code && (
         <pre className="tl-card__output">
           {entry.output || "（无输出）"}
           {entry.truncated && "\n…输出已截断"}

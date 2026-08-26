@@ -41,8 +41,10 @@ describe("translateFrame", () => {
 
   test("tool lifecycle carries bounded output and error status", () => {
     const long = "x".repeat(MAX_TOOL_OUTPUT_CHARS + 100);
-    expect(translateFrame({ type: "tool_execution_start", toolCallId: "t1", toolName: "read" }))
-      .toEqual({ events: [{ kind: "tool.started", toolCallId: "t1", toolName: "read" }], ignored: 0 });
+    expect(translateFrame({ type: "tool_execution_start", toolCallId: "t1", toolName: "read" })).toEqual({
+      events: [{ kind: "tool.started", toolCallId: "t1", toolName: "read", code: null, language: null }],
+      ignored: 0
+    });
     const chunk = translateFrame({ type: "tool_execution_update", toolCallId: "t1", output: long });
     expect(chunk.events[0]).toMatchObject({
       kind: "tool.output",
@@ -50,7 +52,51 @@ describe("translateFrame", () => {
       chunk: long.slice(0, MAX_TOOL_OUTPUT_CHARS)
     });
     expect(translateFrame({ type: "tool_execution_end", toolCallId: "t1", isError: true })).toEqual({
-      events: [{ kind: "tool.finished", toolCallId: "t1", isError: true }],
+      events: [{ kind: "tool.finished", toolCallId: "t1", isError: true, plan: null }],
+      ignored: 0
+    });
+  });
+
+  test("todo results carry a bounded plan view; eval starts carry code", () => {
+    const planFrame = {
+      type: "tool_execution_end",
+      toolCallId: "p1",
+      toolName: "todo",
+      isError: false,
+      result: {
+        details: {
+          phases: [
+            { name: "Phase A", tasks: [{ content: "Do it", status: "completed" }, { junk: true }] }
+          ]
+        }
+      }
+    };
+    expect(translateFrame(planFrame)).toEqual({
+      events: [
+        {
+          kind: "tool.finished",
+          toolCallId: "p1",
+          isError: false,
+          plan: [{ name: "Phase A", tasks: [{ content: "Do it", status: "completed" }] }]
+        }
+      ],
+      ignored: 0
+    });
+    expect(translateFrame({ type: "tool_execution_end", toolCallId: "p2", isError: false })).toEqual({
+      events: [{ kind: "tool.finished", toolCallId: "p2", isError: false, plan: null }],
+      ignored: 0
+    });
+    expect(
+      translateFrame({
+        type: "tool_execution_start",
+        toolCallId: "e1",
+        toolName: "eval",
+        args: { language: "py", code: "print(1)" }
+      })
+    ).toEqual({
+      events: [
+        { kind: "tool.started", toolCallId: "e1", toolName: "eval", code: "print(1)", language: "py" }
+      ],
       ignored: 0
     });
   });
