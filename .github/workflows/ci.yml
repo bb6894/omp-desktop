@@ -60,3 +60,7 @@ jobs:
 
       - name: Verify
         run: npm run verify
+        env:
+          # The identity tests drive real agent turns and need a configured
+          # provider; CI has no OMP credentials.
+          OMP_SKIP_REAL_RUNTIME_TESTS: "1"

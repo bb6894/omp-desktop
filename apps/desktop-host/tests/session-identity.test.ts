@@ -27,6 +27,13 @@ import { spawnVerifiedRuntime } from "../src/runtime";
 
 const RUNTIME = resolve(import.meta.dir, "../../../artifacts/omp-windows-x64.exe");
 const RUNTIME_AVAILABLE = existsSync(RUNTIME);
+/**
+ * These tests drive REAL agent turns, which require a configured model
+ * provider in the ambient OMP profile. CI has no credentials — it opts out
+ * explicitly; local runs keep the default-on behavior.
+ */
+const REAL_RUNTIME_ENABLED =
+  RUNTIME_AVAILABLE && process.env.OMP_SKIP_REAL_RUNTIME_TESTS !== "1";
 
 type Harness = {
   workRoot: string;
@@ -89,7 +96,7 @@ async function materializeSession(bridge: OmpRpcBridge): Promise<string> {
   throw new Error("SESSION_FILE_NOT_MATERIALIZED");
 }
 
-test.skipIf(!RUNTIME_AVAILABLE)(
+test.skipIf(!REAL_RUNTIME_ENABLED)(
   "T0.2 create-binding: first persisted turn produces a SessionRecord with uuid/path/cwd equality",
   async () => {
     const harness = await spawnBridge();
@@ -119,7 +126,7 @@ test.skipIf(!RUNTIME_AVAILABLE)(
   240_000
 );
 
-test.skipIf(!RUNTIME_AVAILABLE)(
+test.skipIf(!REAL_RUNTIME_ENABLED)(
   "T0.3 restore-binding: switch_session is driven purely by record-derived paths; success is file-level, never sessionId",
   async () => {
     const harness = await spawnBridge();
@@ -149,7 +156,7 @@ test.skipIf(!RUNTIME_AVAILABLE)(
   240_000
 );
 
-test.skipIf(!RUNTIME_AVAILABLE)(
+test.skipIf(!REAL_RUNTIME_ENABLED)(
   "T0.4 two-runtime isolation: separate pipes keep identities, discovery, and liveness disjoint",
   async () => {
     const harnessA = await spawnBridge();
