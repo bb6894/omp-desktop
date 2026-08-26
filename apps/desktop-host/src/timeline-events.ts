@@ -1,5 +1,7 @@
 import {
   MAX_TOOL_OUTPUT_CHARS,
+  type CommandsUpdateEvent,
+  type ConfigUpdateEvent,
   type InteractionCancelledEvent,
   type InteractionRequestedEvent,
   type MessageAddedEvent,
@@ -9,6 +11,8 @@ import {
   type PlanTaskView,
   type RunStateEvent,
   type RunStateValue,
+  type SessionInfoEvent,
+  type SlashCommandInfo,
   type SystemNoteEvent,
   type TimelineEvent,
   type ToolFinishedEvent,
@@ -147,6 +151,30 @@ function planTaskView(input: unknown): PlanTaskView | null {
  * Host-validated todo phases from the Runtime result details (`TodoToolDetails`).
  * Anything malformed drops; caps keep a hostile result from flooding the UI.
  */
+
+const COMMAND_NAME_PATTERN = /^[a-z][a-z0-9_-]{0,63}$/;
+
+/** Bounded parse of one Runtime registry entry; malformed shapes drop. */
+function parseSlashCommandInfo(input: unknown): SlashCommandInfo | null {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) return null;
+  const record = input as Record<string, unknown>;
+  if (typeof record.name !== "string" || !COMMAND_NAME_PATTERN.test(record.name)) return null;
+  const aliases = Array.isArray(record.aliases)
+    ? record.aliases.filter((alias): alias is string => typeof alias === "string")
+    : null;
+  const hint = isRecord(record.input) ? record.input : {};
+  return {
+    name: record.name,
+    aliases: aliases && aliases.length > 0 ? aliases : null,
+    description:
+      typeof record.description === "string" && record.description.length > 0
+        ? record.description.slice(0, 300)
+        : null,
+    inputHint: typeof hint.hint === "string" && hint.hint.length > 0 ? hint.hint.slice(0, 120) : null,
+    source: typeof record.source === "string" && record.source.length > 0 ? record.source.slice(0, 60) : "runtime"
+  };
+}
+
 function extractPlanView(frame: RpcFrame): readonly PlanPhaseView[] | null {
   if (frame.toolName !== "todo") return null;
   const result = isRecord(frame.result) ? frame.result : {};
@@ -250,6 +278,50 @@ export function translateFrame(frame: RpcFrame): TranslateResult {
         isError: frame.isError === true,
         plan: extractPlanView(frame)
       } satisfies Omit<ToolFinishedEvent, "v" | "seq" | "sessionId">);
+      return { events, ignored: 0 };
+    }
+
+    case "available_commands_update": {
+      const raw = Array.isArray(frame.commands) ? frame.commands : [];
+      const commands = raw
+        .map(parseSlashCommandInfo)
+        .filter((info): info is SlashCommandInfo => info !== null)
+        .slice(0, 200);
+      events.push({
+        kind: "commands.update",
+        commands
+      } satisfies Omit<CommandsUpdateEvent, "v" | "seq" | "sessionId">);
+      return { events, ignored: 0 };
+    }
+
+    case "config_update": {
+      const rawModel = isRecord(frame.model) ? frame.model : {};
+      const model = typeof frame.model === "string" ? frame.model : typeof rawModel.id === "string" ? rawModel.id : null;
+      const thinkingLevel = typeof frame.thinkingLevel === "string" ? frame.thinkingLevel : null;
+      if (model === null && thinkingLevel === null) return { events, ignored: 1 };
+      events.push({
+        kind: "config.update",
+        model,
+        thinkingLevel
+      } satisfies Omit<ConfigUpdateEvent, "v" | "seq" | "sessionId">);
+      return { events, ignored: 0 };
+    }
+
+    case "session_info_update": {
+      const name = typeof frame.title === "string" && frame.title.length > 0 ? frame.title : null;
+      if (name === null) return { events, ignored: 1 };
+      events.push({
+        kind: "session.info",
+        name
+      } satisfies Omit<SessionInfoEvent, "v" | "seq" | "sessionId">);
+      return { events, ignored: 0 };
+    }
+
+    case "command_output": {
+      // Slash-command results stream here (terminal parity: printed inline).
+      const text = typeof frame.text === "string" ? frame.text : "";
+      if (text.length === 0) return { events, ignored: 1 };
+      events.push(systemNoteEvent(text.slice(0, MAX_TOOL_OUTPUT_CHARS)));
       return { events, ignored: 0 };
     }
 

@@ -5,6 +5,7 @@ import { parseUnifiedDiff } from "../lib/diff-view";
 import {
   useProductBridge,
   type ApprovalRuleLists,
+  type WorkbenchState,
   type WorkspaceDiff,
   type WorkspaceFileEntry,
   type WorkspaceStatus
@@ -27,11 +28,15 @@ type Tab = "detail" | "changes";
 export function RightPanel({
   session,
   approvalRules,
-  onRemoveRule
+  workbench,
+  onRemoveRule,
+  onToggle
 }: {
   session: SessionViewData | null;
   approvalRules: ApprovalRuleLists | null;
+  workbench: WorkbenchState | null;
   onRemoveRule: (ruleId: string) => void;
+  onToggle: (command: Record<string, unknown>) => void;
 }) {
   const bridge = useProductBridge();
   const [tab, setTab] = useState<Tab>("detail");
@@ -172,6 +177,88 @@ export function RightPanel({
                     </button>
                   </li>
                 ))}
+              </ul>
+            </section>
+            <section className="right-panel__rules" aria-label="运行开关">
+              <p className="right-panel__rules-title">运行开关</p>
+              <ul className="right-panel__rule-list">
+                <li className="right-panel__rule">
+                  <span className="right-panel__rule-tool">快速模式</span>
+                  <span className="right-panel__rule-scope">{workbench?.fastMode ? "开" : "关"}</span>
+                  <button
+                    type="button"
+                    className="button button--ghost right-panel__rule-remove"
+                    disabled={workbench?.fastMode === null || workbench === null}
+                    onClick={() => onToggle({ type: "set_fast_mode", enabled: !(workbench?.fastMode ?? false) })}
+                  >
+                    切换
+                  </button>
+                </li>
+                <li className="right-panel__rule">
+                  <span className="right-panel__rule-tool">自动压缩</span>
+                  <span className="right-panel__rule-scope">{workbench?.autoCompaction ? "开" : "关"}</span>
+                  <button
+                    type="button"
+                    className="button button--ghost right-panel__rule-remove"
+                    disabled={workbench?.autoCompaction === null || workbench === null}
+                    onClick={() =>
+                      onToggle({ type: "set_auto_compaction", enabled: !(workbench?.autoCompaction ?? false) })
+                    }
+                  >
+                    切换
+                  </button>
+                </li>
+                <li className="right-panel__rule">
+                  <span className="right-panel__rule-tool">插话模式</span>
+                  <span className="right-panel__rule-scope">{workbench?.steeringMode ?? "—"}</span>
+                  <button
+                    type="button"
+                    className="button button--ghost right-panel__rule-remove"
+                    disabled={!workbench?.steeringMode}
+                    onClick={() =>
+                      onToggle({
+                        type: "set_steering_mode",
+                        mode: workbench?.steeringMode === "all" ? "one-at-a-time" : "all"
+                      })
+                    }
+                  >
+                    切换
+                  </button>
+                </li>
+                <li className="right-panel__rule">
+                  <span className="right-panel__rule-tool">队列模式</span>
+                  <span className="right-panel__rule-scope">{workbench?.followUpMode ?? "—"}</span>
+                  <button
+                    type="button"
+                    className="button button--ghost right-panel__rule-remove"
+                    disabled={!workbench?.followUpMode}
+                    onClick={() =>
+                      onToggle({
+                        type: "set_follow_up_mode",
+                        mode: workbench?.followUpMode === "all" ? "one-at-a-time" : "all"
+                      })
+                    }
+                  >
+                    切换
+                  </button>
+                </li>
+                <li className="right-panel__rule">
+                  <span className="right-panel__rule-tool">中断模式</span>
+                  <span className="right-panel__rule-scope">{workbench?.interruptMode ?? "—"}</span>
+                  <button
+                    type="button"
+                    className="button button--ghost right-panel__rule-remove"
+                    disabled={!workbench?.interruptMode}
+                    onClick={() =>
+                      onToggle({
+                        type: "set_interrupt_mode",
+                        mode: workbench?.interruptMode === "immediate" ? "wait" : "immediate"
+                      })
+                    }
+                  >
+                    切换
+                  </button>
+                </li>
               </ul>
             </section>
           </div>

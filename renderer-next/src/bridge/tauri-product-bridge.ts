@@ -266,13 +266,34 @@ export function createTauriProductBridge(seams?: Partial<TauriSeams>): ProductBr
       return {
         model,
         thinkingLevel: typeof state.thinkingLevel === "string" ? state.thinkingLevel : null,
-        models
+        models,
+        queuedCount: typeof state.queuedMessageCount === "number" ? state.queuedMessageCount : null,
+        fastMode: typeof state.fastModeEnabled === "boolean" ? state.fastModeEnabled : null,
+        autoCompaction:
+          typeof state.autoCompactionEnabled === "boolean" ? state.autoCompactionEnabled : null,
+        steeringMode: typeof state.steeringMode === "string" ? state.steeringMode : null,
+        followUpMode: typeof state.followUpMode === "string" ? state.followUpMode : null,
+        interruptMode: typeof state.interruptMode === "string" ? state.interruptMode : null,
+        tokensPerSecond: typeof state.tokensPerSecond === "number" ? state.tokensPerSecond : null,
+        contextPercent:
+          typeof state.contextUsage === "object" &&
+          state.contextUsage !== null &&
+          typeof (state.contextUsage as Record<string, unknown>).percent === "number"
+            ? (state.contextUsage as Record<string, unknown>).percent as number
+            : null
       };
     },
-
     async setModel(sessionId: string, provider: string, modelId: string): Promise<void> {
       // Runtime contract: {provider, modelId} — a bare `model` field no-ops.
       await sendNested(sessionId, { type: "set_model", provider, modelId });
+    },
+
+    async sendPrompt(targetId: string, text: string, behavior?: "steer" | "followUp"): Promise<void> {
+      await sendNested(targetId, {
+        type: "prompt",
+        message: text,
+        ...(behavior ? { streamingBehavior: behavior } : {})
+      });
     },
 
     async steerSession(targetId: string, text: string): Promise<void> {
@@ -288,10 +309,6 @@ export function createTauriProductBridge(seams?: Partial<TauriSeams>): ProductBr
 
     async cycleThinkingLevel(sessionId: string): Promise<void> {
       await sendNested(sessionId, { type: "cycle_thinking_level" });
-    },
-
-    async sendPrompt(targetId: string, text: string): Promise<void> {
-      await sendNested(targetId, { type: "prompt", message: text });
     },
 
     async openRuntimeSession(targetId: string): Promise<void> {

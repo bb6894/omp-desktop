@@ -212,7 +212,15 @@ describe("nested agent.command path", () => {
       models: [
         { id: "m1", provider: "acme" },
         { id: "alt", provider: "beta" }
-      ]
+      ],
+      queuedCount: null,
+      fastMode: null,
+      autoCompaction: null,
+      steeringMode: null,
+      followUpMode: null,
+      interruptMode: null,
+      tokensPerSecond: null,
+      contextPercent: null
     });
     off();
   });

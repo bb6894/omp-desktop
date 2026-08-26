@@ -91,6 +91,32 @@ test("interaction.requested records a pending ask entry with options", () => {
   });
 });
 
+test("commands.update replaces the registry; config and session info update fields", () => {
+  const model = fold([
+    event({
+      kind: "commands.update",
+      commands: [
+        { name: "review", aliases: null, description: "审查", inputHint: null, source: "skill" },
+        { junk: true }
+      ]
+    }),
+    event({ kind: "config.update", model: "m2", thinkingLevel: "low" }),
+    event({ kind: "session.info", name: "重构会话" })
+  ]);
+  expect(model.commands.map((command) => command.name)).toEqual(["review"]);
+  expect(model.configModel).toBe("m2");
+  expect(model.configThinking).toBe("low");
+  expect(model.sessionName).toBe("重构会话");
+  expect(model.entries).toHaveLength(0);
+  const partial = fold([
+    event({ kind: "config.update", model: "m9" }),
+    event({ kind: "session.info", name: null })
+  ]);
+  expect(partial.configModel).toBe("m9");
+  expect(partial.configThinking).toBeNull();
+  expect(partial.sessionName).toBeNull();
+});
+
 test("unknown kinds and malformed events increment the counter without crashing", () => {
   let model = fold([
     event({ kind: "mystery.kind" } as unknown as TimelineEvent),

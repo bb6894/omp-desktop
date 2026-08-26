@@ -111,6 +111,17 @@ function Workbench({ transport }: { transport: Transport }) {
     },
     [bridge]
   );
+  const loadWorkbench = useCallback(
+    async (routeId: string) => {
+      if (transport !== "tauri") return;
+      try {
+        setWorkbench(await bridge.fetchWorkbenchState(routeId));
+      } catch {
+        setWorkbench(null);
+      }
+    },
+    [bridge, transport]
+  );
 
   const armEvents = useCallback(
     async (routeId: string, boundId: string) => {
@@ -123,16 +134,21 @@ function Workbench({ transport }: { transport: Transport }) {
         subscribe: (handlers) => bridge.subscribeEvents(routeId, handlers),
         replay: (afterSeq) => bridge.replayTimeline(routeId, afterSeq),
         lastSeq: cached ? cached.lastSeq : null,
-        apply: (event) =>
+        apply: (event) => {
           setTimelines((prev) => ({
             ...prev,
             [boundId]: reduceTimeline(prev[boundId] ?? emptyTimeline(), event)
-          })),
+          }));
+          // Side-band reactions: renames refresh the rail; runtime-side
+          // config changes refresh the composer controls.
+          if (event.kind === "session.info") void refresh();
+          if (event.kind === "config.update") void loadWorkbench(routeId);
+        },
         onExit: (reason) => setNotice(`会话进程已退出：${reason || "未知原因"}`),
         onDesync: () => void hydrate(boundId)
       });
     },
-    [bridge, hydrate]
+    [bridge, hydrate, loadWorkbench, refresh]
   );
 
   const activate = useCallback(
@@ -143,17 +159,6 @@ function Workbench({ transport }: { transport: Transport }) {
     [bridge]
   );
 
-  const loadWorkbench = useCallback(
-    async (routeId: string) => {
-      if (transport !== "tauri") return;
-      try {
-        setWorkbench(await bridge.fetchWorkbenchState(routeId));
-      } catch {
-        setWorkbench(null);
-      }
-    },
-    [bridge, transport]
-  );
 
   const refreshRules = useCallback(async () => {
     if (transport !== "tauri") return;
@@ -551,6 +556,7 @@ function Workbench({ transport }: { transport: Transport }) {
                   workbench={workbench}
                   busy={busy || selected.runtimeState === "waiting-user"}
                   turnActive={(timelines[selected.id]?.turnActive ?? false)}
+                  runtimeCommands={timelineForSelected.commands}
                   onSend={(text) => {
                     const route = resolveRoute(selected.id);
                     if (!route) {
@@ -575,9 +581,45 @@ function Workbench({ transport }: { transport: Transport }) {
                       setNotice("PRODUCT_NO_ACTIVE_SESSION");
                       return;
                     }
+                    if (command.kind === "runtime") {
+                      const text = `/${command.name}${rest ? ` ${rest}` : ""}`;
+                      const active = timelines[selected.id]?.turnActive ?? false;
+                      // While a turn is live the Runtime queues slash prompts.
+                      void bridge
+                        .sendPrompt(route, text, active ? "followUp" : undefined)
+                        .catch((error: unknown) =>
+                          setNotice(error instanceof Error ? error.message : String(error))
+                        );
+                      return;
+                    }
+                    if (!command.build) return;
                     void bridge
                       .runAgentCommand(route, command.build(rest))
-                      .then((data) => setNotice(`/${command.name} 已执行。` + summarizeCommandResult(data)))
+                      .then((data) => {
+                        if (command.name === "copy" && typeof data.text === "string") {
+                          void navigator.clipboard?.writeText(data.text).then(() =>
+                            setNotice("已复制上次回复到剪贴板。")
+                          );
+                          return;
+                        }
+                        setNotice(`/${command.name} 已执行。` + summarizeCommandResult(data));
+                      })
+                      .catch((error: unknown) =>
+                        setNotice(error instanceof Error ? error.message : String(error))
+                      );
+                  }}
+                  onRunBash={(shell) => {
+                    const route = resolveRoute(selected.id);
+                    if (!route) {
+                      setNotice("PRODUCT_NO_ACTIVE_SESSION");
+                      return;
+                    }
+                    void bridge
+                      .runAgentCommand(route, { type: "bash", command: shell })
+                      .then((data) => {
+                        const output = typeof data.output === "string" ? data.output : JSON.stringify(data);
+                        setNotice(`$ ${shell}\n${output.slice(0, 400)}`);
+                      })
                       .catch((error: unknown) =>
                         setNotice(error instanceof Error ? error.message : String(error))
                       );
@@ -622,7 +664,21 @@ function Workbench({ transport }: { transport: Transport }) {
         <RightPanel
           session={selected}
           approvalRules={approvalRules}
+          workbench={workbench}
           onRemoveRule={removeRule}
+          onToggle={(command) => {
+            const route = selected ? routes.current.get(selected.id) : null;
+            if (!route) {
+              setNotice("PRODUCT_NO_ACTIVE_SESSION");
+              return;
+            }
+            void bridge
+              .runAgentCommand(route, command)
+              .then(() => loadWorkbench(route))
+              .catch((error: unknown) =>
+                setNotice(error instanceof Error ? error.message : String(error))
+              );
+          }}
         />
       </div>
     </div>

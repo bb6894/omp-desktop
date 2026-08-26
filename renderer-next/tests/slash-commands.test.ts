@@ -31,7 +31,7 @@ describe("matchSlashCommands", () => {
   });
 
   test("prefix filter matches tokens only", () => {
-    expect(matchSlashCommands("c").map((command) => command.name)).toEqual(["compact"]);
+    expect(matchSlashCommands("c").map((command) => command.name)).toEqual(["compact", "copy"]);
     expect(matchSlashCommands("NEW")).toEqual([SLASH_COMMANDS[0]]);
     expect(matchSlashCommands("zzz")).toEqual([]);
   });
@@ -40,14 +40,14 @@ describe("matchSlashCommands", () => {
 describe("palette builds allowlisted Runtime commands", () => {
   test("each command emits a type plus optional fields", () => {
     const byName = new Map(SLASH_COMMANDS.map((command) => [command.name, command]));
-    expect(byName.get("new")!.build("")).toEqual({ type: "new_session" });
-    expect(byName.get("compact")!.build("")).toEqual({ type: "compact" });
-    expect(byName.get("compact")!.build("保留计划")).toEqual({
+    expect(byName.get("new")!.build!("")).toEqual({ type: "new_session" });
+    expect(byName.get("compact")!.build!("")).toEqual({ type: "compact" });
+    expect(byName.get("compact")!.build!("保留计划")).toEqual({
       type: "compact",
       customInstructions: "保留计划"
     });
-    expect(byName.get("export")!.build("")).toEqual({ type: "export_html" });
-    expect(byName.get("stats")!.build("")).toEqual({ type: "get_session_stats" });
+    expect(byName.get("export")!.build!("")).toEqual({ type: "export_html" });
+    expect(byName.get("stats")!.build!("")).toEqual({ type: "get_session_stats" });
   });
 
   test("every palette command is Host-allowlisted vocabulary (no drift)", () => {
@@ -57,6 +57,27 @@ describe("palette builds allowlisted Runtime commands", () => {
       "compact",
       "cycle_model",
       "cycle_thinking_level",
+      "abort_and_prompt",
+      "abort_bash",
+      "abort_retry",
+      "bash",
+      "branch",
+      "get_available_commands",
+      "get_branch_messages",
+      "get_last_assistant_text",
+      "get_subagent_messages",
+      "get_subagents",
+      "handoff",
+      "set_auto_compaction",
+      "set_auto_retry",
+      "set_fast_mode",
+      "set_follow_up_mode",
+      "set_interrupt_mode",
+      "set_session_name",
+      "set_steering_mode",
+      "set_subagent_subscription",
+      "set_thinking_level",
+      "set_todos",
       "export_html",
       "extension_ui_response",
       "follow_up",
@@ -72,7 +93,7 @@ describe("palette builds allowlisted Runtime commands", () => {
       "steer"
     ]);
     for (const command of SLASH_COMMANDS) {
-      expect(allowed.has(command.build("").type as string), command.name).toBe(true);
+      expect(allowed.has(command.build!("").type as string), command.name).toBe(true);
     }
   });
 });

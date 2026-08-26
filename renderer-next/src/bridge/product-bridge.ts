@@ -41,6 +41,14 @@ export type WorkbenchState = {
   model: string | null;
   thinkingLevel: string | null;
   models: readonly { id: string; provider: string }[];
+  queuedCount: number | null;
+  fastMode: boolean | null;
+  autoCompaction: boolean | null;
+  steeringMode: string | null;
+  followUpMode: string | null;
+  interruptMode: string | null;
+  tokensPerSecond: number | null;
+  contextPercent: number | null;
 };
 
 export type ApprovalRuleView = { id: string; tool: string; createdAt: string };
@@ -72,7 +80,7 @@ export type ProductBridge = {
   /** Runs one allowlisted Runtime command (slash-palette surface). */
   runAgentCommand(sessionId: string, command: Record<string, unknown>): Promise<Record<string, unknown>>;
   cycleThinkingLevel(sessionId: string): Promise<void>;
-  sendPrompt(sessionId: string, text: string): Promise<void>;
+  sendPrompt(sessionId: string, text: string, behavior?: "steer" | "followUp"): Promise<void>;
   openRuntimeSession(sessionId: string): Promise<void>;
   /** Journaled timeline events after `afterSeq`; dropped=true forces re-hydration. */
   replayTimeline(sessionId: string, afterSeq: number): Promise<TimelineReplay>;

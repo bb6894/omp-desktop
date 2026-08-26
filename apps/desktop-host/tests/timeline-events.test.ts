@@ -39,6 +39,48 @@ describe("translateFrame", () => {
     });
   });
 
+  test("runtime registry, config, session info, and command output translate", () => {
+    const registry = translateFrame({
+      type: "available_commands_update",
+      commands: [
+        { name: "review", description: "审查工作区", input: { hint: "[范围]" }, source: "skill" },
+        { name: "BAD NAME", junk: true },
+        { name: "mcp-docs", source: "mcp:docs" }
+      ]
+    });
+    expect(registry).toEqual({
+      events: [
+        {
+          kind: "commands.update",
+          commands: [
+            { name: "review", aliases: null, description: "审查工作区", inputHint: "[范围]", source: "skill" },
+            { name: "mcp-docs", aliases: null, description: null, inputHint: null, source: "mcp:docs" }
+          ]
+        }
+      ],
+      ignored: 0
+    });
+    expect(
+      translateFrame({ type: "config_update", model: { id: "m2", provider: "acme" }, thinkingLevel: "high" })
+    ).toEqual({
+      events: [{ kind: "config.update", model: "m2", thinkingLevel: "high" }],
+      ignored: 0
+    });
+    expect(translateFrame({ type: "config_update" })).toEqual({
+      events: [],
+      ignored: 1
+    });
+    expect(translateFrame({ type: "session_info_update", title: "重构会话" })).toEqual({
+      events: [{ kind: "session.info", name: "重构会话" }],
+      ignored: 0
+    });
+    expect(translateFrame({ type: "command_output", text: "done" })).toEqual({
+      events: [{ kind: "system.note", level: "info", text: "done" }],
+      ignored: 0
+    });
+    expect(translateFrame({ type: "command_output", text: "" })).toEqual({ events: [], ignored: 1 });
+  });
+
   test("tool lifecycle carries bounded output and error status", () => {
     const long = "x".repeat(MAX_TOOL_OUTPUT_CHARS + 100);
     expect(translateFrame({ type: "tool_execution_start", toolCallId: "t1", toolName: "read" })).toEqual({

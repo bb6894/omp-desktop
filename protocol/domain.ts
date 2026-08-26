@@ -88,6 +88,31 @@ export type ToolFinishedEvent = TimelineEnvelope<"tool.finished"> & {
   plan?: readonly PlanPhaseView[] | null;
 };
 
+/** One entry of the Runtime's dynamic slash-command registry. */
+export type SlashCommandInfo = {
+  name: string;
+  aliases: readonly string[] | null;
+  description: string | null;
+  inputHint: string | null;
+  source: string;
+};
+
+/** Runtime `available_commands_update`: the live command registry (MCP/extensions included). */
+export type CommandsUpdateEvent = TimelineEnvelope<"commands.update"> & {
+  commands: readonly SlashCommandInfo[];
+};
+
+/** Runtime `config_update`: model/thinking changed outside the composer. */
+export type ConfigUpdateEvent = TimelineEnvelope<"config.update"> & {
+  model: string | null;
+  thinkingLevel: string | null;
+};
+
+/** Runtime `session_info_update`: session name changed (e.g. via /name). */
+export type SessionInfoEvent = TimelineEnvelope<"session.info"> & {
+  name: string | null;
+};
+
 export type InteractionRequestedEvent = TimelineEnvelope<"interaction.requested"> & {
   interactionId: string;
   method: string | null;
@@ -126,7 +151,10 @@ export type TimelineEvent =
   | ToolFinishedEvent
   | InteractionRequestedEvent
   | InteractionCancelledEvent
-  | SystemNoteEvent;
+  | SystemNoteEvent
+  | CommandsUpdateEvent
+  | ConfigUpdateEvent
+  | SessionInfoEvent;
 
 export type TimelineEventKind = TimelineEvent["kind"];
 

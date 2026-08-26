@@ -1,7 +1,8 @@
 import {
   isLiveRunState,
   type PlanPhaseView,
-  type RunStateValue
+  type RunStateValue,
+  type SlashCommandInfo
 } from "../../../protocol/domain";
 
 /**
@@ -53,6 +54,13 @@ export type TimelineModel = {
   /** A sequence gap was detected; re-hydrate then continue. */
   desynced: boolean;
   unrecognized: number;
+  /** Live Runtime slash-command registry (MCP/extensions included). */
+  commands: readonly SlashCommandInfo[];
+  /** Last observed runtime-side config (model/thinking) outside the composer. */
+  configModel: string | null;
+  configThinking: string | null;
+  /** Session name from session_info_update (e.g. after /name). */
+  sessionName: string | null;
 };
 
 const MAX_TOOL_OUTPUT = 8_000;
@@ -64,7 +72,11 @@ export function emptyTimeline(): TimelineModel {
     turnActive: false,
     lastSeq: 0,
     desynced: false,
-    unrecognized: 0
+    unrecognized: 0,
+    commands: [],
+    configModel: null,
+    configThinking: null,
+    sessionName: null
   };
 }
 
@@ -283,6 +295,34 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         text: event.text
       };
       return { ...based, lastSeq: event.seq, entries: replaceOrAppend(based.entries, entry) };
+    }
+
+    case "commands.update": {
+      if (!Array.isArray(event.commands)) {
+        return { ...based, lastSeq: event.seq, unrecognized: based.unrecognized + 1 };
+      }
+      const commands = event.commands.filter(
+        (info): info is SlashCommandInfo =>
+          typeof info === "object" && info !== null && typeof (info as SlashCommandInfo).name === "string"
+      );
+      return { ...based, lastSeq: event.seq, commands };
+    }
+
+    case "config.update": {
+      return {
+        ...based,
+        lastSeq: event.seq,
+        configModel: typeof event.model === "string" ? event.model : based.configModel,
+        configThinking: typeof event.thinkingLevel === "string" ? event.thinkingLevel : based.configThinking
+      };
+    }
+
+    case "session.info": {
+      return {
+        ...based,
+        lastSeq: event.seq,
+        sessionName: typeof event.name === "string" ? event.name : based.sessionName
+      };
     }
 
     default:
