@@ -7,6 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Desktop-side approval rules engine (codex-style amend semantics):
+  desktop-owned runtimes now spawn with `--approval-mode write` instead of
+  silently inheriting the Runtime's `yolo` default, so exec-tier tools ask
+  before running while read/write work stays friction-free. Approval cards
+  offer 「本会话内放行此类」 and 「项目内记住放行」 grants; granted prompts are
+  answered by the Host in place and surface as a system note instead of a
+  phantom ask card. Rules are created only by explicit user action, match
+  exclusively the Runtime's `Allow tool: <name>` Approve/Deny prompt shape,
+  and project-scoped rules persist atomically beside per-project session
+  metadata. The 详情 tab lists active rules with revoke buttons; three new
+  allowlisted ops (`approval.rules.list/add/remove`) back the surface.
+- Structured plan cards: the todo tool now renders as phase-grouped
+  checklists with status marks (○ ▶ ✓ ⨯ ⛔) instead of an opaque output
+  block, and eval runs show their source as a language-tagged code block.
+  Both are extracted at the Host translation boundary with hard caps and
+  drop silently on malformed shapes.
+- Per-file review marks in the 变更 panel: toggle ○/✓ on each changed file,
+  an n/total counter, mark-all action, persisted per session across
+  restarts.
 - Fixed a first-real-session fatal bug on clean machines: the Bun-compiled
   Host resolves `pi_natives.win32-x64-*.node` at runtime, and the bundle did
   not ship it — the first agent turn died with MODULE_NOT_FOUND behind a

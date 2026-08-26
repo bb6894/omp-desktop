@@ -34,18 +34,34 @@ function optionValue(args: readonly string[], name: string): string | undefined 
   return value;
 }
 
-export function createHostSessionService(cwd: string, paths: ProfilePaths): SessionService {
+function approvalRulesPathFor(cwd: string): string {
+  return join(
+    defaultHarnessDataRoot(),
+    "OMP Desktop",
+    "sessions",
+    "projects",
+    harnessProjectId(cwd),
+    "approval-rules.json"
+  );
+}
+
+/**
+ * `ruleBook` defaults to the per-project store; runHost passes its own so the
+ * SAME instance backs both the dispatch surface and the Agent spawn options.
+ */
+export function createHostSessionService(
+  cwd: string,
+  paths: ProfilePaths,
+  ruleBook: ApprovalRuleBook = new ApprovalRuleBook(approvalRulesPathFor(cwd))
+): SessionService {
   const harnessDataRoot = defaultHarnessDataRoot();
   const inspector = new HarnessStore(cwd, harnessDataRoot);
   const mutations = new HarnessMutationService(cwd, inspector, new HarnessMutationExecutor(cwd, harnessDataRoot));
   const sessionMetadata = new SessionMetadataStore(
     join(harnessDataRoot, "OMP Desktop", "sessions", "projects", harnessProjectId(cwd), "metadata.json")
   );
-  const approvalRules = new ApprovalRuleBook(
-    join(harnessDataRoot, "OMP Desktop", "sessions", "projects", harnessProjectId(cwd), "approval-rules.json")
-  );
   const sessions = new SessionService(new OfficialOmpSessionAdapter(cwd, paths), inspector, mutations, sessionMetadata);
-  sessions.setApprovalRules(approvalRules);
+  sessions.setApprovalRules(ruleBook);
   sessions.setWorkspace({
     status: () => collectStatus(cwd, nodeExec),
     diff: (path) => buildDiff(cwd, path, nodeExec)
@@ -62,15 +78,19 @@ async function runHost(): Promise<void> {
   const cwd = optionValue(args, "--cwd");
   if (!cwd) throw new Error("HOST_CWD_REQUIRED");
   const paths = resolveProfilePaths(cwd, optionValue(args, "--profile"));
-  const sessions = createHostSessionService(cwd, paths);
+  // One shared book: matching in the agent service and the rules ops must
+  // observe identical state.
+  const ruleBook = new ApprovalRuleBook(approvalRulesPathFor(cwd));
+  const sessions = createHostSessionService(cwd, paths, ruleBook);
   const agents = args.includes("--fixture")
     ? new FixtureAgentService((event) => sessions.emit(event))
     : new AgentService({
       runtimePath: optionValue(args, "--runtime") ?? defaultRuntimePath(process.execPath),
       cwd,
       sessionDir: paths.desktopSessionsDir,
-      onDiagnostic: (message) => process.stderr.write(`${message}\n`),
-      ruleBook: approvalRules
+      ruleBook,
+      onEvent: (event) => sessions.emit(event),
+      onDiagnostic: (message) => process.stderr.write(`${message}\n`)
     });
   sessions.setAgentService(agents);
   await serveLocalHost(process.stdin, {
