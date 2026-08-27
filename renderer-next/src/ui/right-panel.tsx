@@ -4,1325 +4,170 @@ import { loadAppPreferences, saveAppPreferences } from "../lib/app-preferences";
 import { parseUnifiedDiff } from "../lib/diff-view";
 import { emptyTerminal, type TerminalModel } from "../lib/event-reducer";
 import { TerminalTab } from "./terminal-tab";
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
-import { PreviewTab } from "./preview-tab";
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
+import { PreviewTab } from "./preview-tab"; /\* eslint-disable-line no-unused-vars \*/
 import {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   useProductBridge,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   type ApprovalRuleLists,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   type WorkbenchState,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   type WorkspaceDiff,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   type WorkspaceFileEntry,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   type WorkspaceStatus
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 } from "../bridge/product-bridge";
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 import type { SubAgentInfo } from "../../../protocol/domain";
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 const STATE_LABEL: Record<SessionViewData["runtimeState"], string> = {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   idle: "空闲",
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   running: "运行中",
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   "waiting-user": "等待你处理",
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   failed: "失败"
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 };
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 type Tab = "detail" | "changes" | "terminal" | "preview";
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 /**
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
  * Right context panel (Phase 7): session details tab plus the bounded
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
  * Changes/Diff view. Diff content is fetched per file through the bounded
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
  * Host ops — caps, binary detection, and truncation are Host-owned.
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
  */
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 export function RightPanel({
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   session,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   approvalRules,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   workbench,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   runtimeUpdate,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   onRemoveRule,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   onToggle,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   subAgents
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 }: {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   session: SessionViewData | null;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   approvalRules: ApprovalRuleLists | null;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   workbench: WorkbenchState | null;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   runtimeUpdate: { version: string; latestVersion: string | null; updateAvailable: boolean } | null;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   onRemoveRule: (ruleId: string) => void;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   onToggle: (command: Record<string, unknown>) => void;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   subAgents: readonly SubAgentInfo[];
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 }) {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const bridge = useProductBridge();
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [tab, setTab] = useState<Tab>("detail");
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [status, setStatus] = useState<WorkspaceStatus | null>(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [diffPath, setDiffPath] = useState<string | null>(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [diff, setDiff] = useState<WorkspaceDiff | null>(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [loading, setLoading] = useState(false);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [error, setError] = useState<string | null>(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [reviewed, setReviewed] = useState<readonly string[]>([]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [terminalModel, _setTerminalModel] = useState<TerminalModel>(emptyTerminal());
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const [applying, setApplying] = useState<Record<string, "accept" | "reject">>({});
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const loadChanges = useCallback(async () => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     setLoading(true);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     setError(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     try {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setStatus(await bridge.getWorkspaceChanges());
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     } catch (error) {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setError(error instanceof Error ? error.message : String(error));
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     } finally {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setLoading(false);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   }, [bridge]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   useEffect(() => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     setReviewed(session === null ? [] : loadAppPreferences().reviewedFiles[session.id] ?? []);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   }, [session]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const persistReviewed = useCallback(
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     (paths: readonly string[]) => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setReviewed(paths);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       if (session === null) return;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       const prefs = loadAppPreferences();
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       saveAppPreferences({
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         ...prefs,
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         reviewedFiles: { ...prefs.reviewedFiles, [session.id]: paths }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       });
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     },
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     [session]
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   );
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const toggleReviewed = useCallback(
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     (path: string) => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       persistReviewed(reviewed.includes(path) ? reviewed.filter((item) => item !== path) : [...reviewed, path]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     },
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     [persistReviewed, reviewed]
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   );
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const handleApply = useCallback(
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     async (path: string, action: "accept" | "reject") => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setApplying((prev) => ({ ...prev, [path]: action }));
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       try {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         const ok = await bridge.applyWorkspaceChange(path, action);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         if (ok) {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           if (action === "accept") {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
             persistReviewed([...reviewed, path]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         } else {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           setError(action === "accept" ? "接受失败" : "回滚功能开发中");
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       } catch {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         setError(action === "accept" ? "接受失败" : "回滚功能开发中");
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       } finally {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         setApplying((prev) => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           const next = { ...prev };
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           delete next[path];
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           return next;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         });
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     },
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     [bridge, persistReviewed, reviewed]
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   );
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const handleAcceptAll = useCallback(async () => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     if (!status) return;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     for (const file of status.files) {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       await handleApply(file.path, "accept");
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   }, [status, handleApply]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const handleRejectAll = useCallback(async () => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     if (!status) return;
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     for (const file of status.files) {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       await handleApply(file.path, "reject");
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   }, [status, handleApply]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   const loadDiff = useCallback(
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     async (path: string) => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setLoading(true);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setError(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setDiffPath(path);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       setDiff(null);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       try {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         setDiff(await bridge.getWorkspaceDiff(path));
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       } catch (error) {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         setError(error instanceof Error ? error.message : String(error));
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       } finally {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         setLoading(false);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       }
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     },
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     [bridge]
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   );
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   useEffect(() => {
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     if (tab === "changes" && status === null && !loading) void loadChanges();
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   }, [tab, status, loading, loadChanges]);
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
 
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
   return (
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
     <aside className="right-panel" aria-label="会话详情与变更">
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       <div className="right-panel__tabs">
         <button
           type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
-        <button
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
-          type="button"
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           className={tab === "detail" ? "right-panel__tab--active" : ""}
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           onClick={() => setTab("detail")}
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
         >
-          预览
-        </button>
-        >
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           详情
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         </button>
         <button
           type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
-        <button
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
-          type="button"
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           className={tab === "changes" ? "right-panel__tab--active" : ""}
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           onClick={() => setTab("changes")}
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
         >
-          预览
-        </button>
-        >
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
           变更
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         </button>
         <button
           type="button"
@@ -1332,13 +177,6 @@ export function RightPanel({
           预览
         </button>
       </div>
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       <div className="right-panel__header">
         <div>
           <p className="right-panel__eyebrow">上下文</p>
@@ -1349,21 +187,7 @@ export function RightPanel({
       {tab === "terminal" && (
         <div className="right-panel__content right-panel__content--terminal">
           <TerminalTab model={terminalModel} />
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
         </div>
-        <button
-          type="button"
-          className={tab === "preview" ? "right-panel__tab--active" : ""}
-          onClick={() => setTab("preview")}
-        >
-          预览
-        </button>
       )}
       {tab === "detail" ? (
         session === null ? (
