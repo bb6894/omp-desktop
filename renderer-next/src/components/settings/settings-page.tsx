@@ -3,7 +3,7 @@ import {
   ArrowLeft, Settings as SettingsIcon, Palette, Cube,
   Brain, Bot, Puzzle, Plug, Zap, Terminal, Anchor,
   Globe, Monitor, Database, BarChart3, Lock,
-  Switch as SwitchIcon, Check
+  Switch as SwitchIcon
 } from "lucide-react";
 
 type SettingCategory = "general" | "appearance" | "models" | "memory" | "agents" | "plugins" | "mcp" | "skills" | "commands" | "hooks" | "browser" | "computer" | "database" | "stats" | "security";
@@ -58,7 +58,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         return (
           <div className="flex flex-col items-center justify-center h-64 text-[#555872]">
             <SettingsIcon className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-sm">{"{settingsItems.find(s => s.id === activeSetting)?.label}" 设置页面</p>
+            <p className="text-sm">设置页面</p>
             <p className="text-xs mt-2">此功能正在开发中...</p>
           </div>
         );
