@@ -28,7 +28,7 @@ describe("preferences round-trip", () => {
     const prefs: AppPreferences = {
       lastProjectPath: "C:\\proj-a",
       lastSessionId: "s-1",
-      reviewedFiles: { "s-1": ["src/a.ts"] }
+      reviewedFiles: { "s-1": ["src/a.ts"] }, settings: { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask", terminalShell: "cmd.exe", terminalMaxLines: 1000 }
     };
     saveAppPreferences(prefs, storage);
     expect(loadAppPreferences(storage)).toEqual(prefs);
@@ -50,7 +50,7 @@ describe("preferences round-trip", () => {
     expect(loadAppPreferences(storage)).toEqual({
       lastProjectPath: null,
       lastSessionId: "keep",
-      reviewedFiles: {}
+      reviewedFiles: {}, settings: { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask", terminalShell: "cmd.exe", terminalMaxLines: 1000 }
     });
   });
 
@@ -77,12 +77,12 @@ const SESSIONS = [
 describe("resolveStartupSelection", () => {
   test("restores the exact stored pair when it still exists", () => {
     expect(
-      resolveStartupSelection({ lastProjectPath: "C:\\proj-b", lastSessionId: "mid-b", reviewedFiles: {} }, SESSIONS)
+      resolveStartupSelection({ lastProjectPath: "C:\\proj-b", lastSessionId: "mid-b", reviewedFiles: {}, settings: { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask", terminalShell: "cmd.exe", terminalMaxLines: 1000 } }, SESSIONS)
     ).toBe("mid-b");
   });
 
   test("falls back to the most recent session of the stored project", () => {
-    expect(resolveStartupSelection({ lastProjectPath: "C:\\proj-a", lastSessionId: "gone", reviewedFiles: {} }, SESSIONS)).toBe(
+    expect(resolveStartupSelection({ lastProjectPath: "C:\\proj-a", lastSessionId: "gone", reviewedFiles: {}, settings: { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask", terminalShell: "cmd.exe", terminalMaxLines: 1000 } }, SESSIONS)).toBe(
       "newest"
     );
   });
