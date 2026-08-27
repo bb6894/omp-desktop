@@ -1,8 +1,7 @@
 
 import { 
   Copy, ThumbsUp, ThumbsDown, Share2, 
-  Terminal, CheckCircle, XCircle, RotateCcw,
- FileText
+  Terminal, CheckCircle, XCircle, RotateCcw
 } from "lucide-react";
 
 interface MessageCardProps {
