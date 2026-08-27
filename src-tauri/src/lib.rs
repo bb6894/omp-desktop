@@ -568,5 +568,3 @@ mod harness_command_tests {
         );
     }
 }
-
-
