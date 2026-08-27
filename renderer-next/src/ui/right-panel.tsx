@@ -189,6 +189,11 @@ export function RightPanel({
           <TerminalTab model={terminalModel} />
         </div>
       )}
+      {tab === "preview" && (
+        <div className="right-panel__content right-panel__content--preview">
+          <PreviewTab />
+        </div>
+      )}
       {tab === "detail" ? (
         session === null ? (
           <p className="right-panel__placeholder">从左侧选择一个会话查看详情。</p>
