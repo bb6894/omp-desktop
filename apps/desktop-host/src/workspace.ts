@@ -200,3 +200,94 @@ export async function applyWorkspaceChange(
     return { ok: false, error: `ERR_WORKSPACE_${action.toUpperCase()}: 操作失败 — ${err instanceof Error ? err.message : String(err)}` };
   }
 }
+
+/**
+ * Snapshot management for version rollback.
+ * Takes git commits after each agent turn to enable rollback.
+ */
+export type WorkspaceSnapshot = {
+  commitHash: string;
+  sessionId: string;
+  turnNumber: number;
+  timestamp: string;
+  changedFiles: string[];
+};
+
+export type SnapshotApi = {
+  /** List all snapshots for a session */
+  list(sessionId: string): Promise<WorkspaceSnapshot[]>;
+  /** Rollback to a specific snapshot */
+  rollback(sessionId: string, commitHash: string): Promise<{ ok: boolean; error?: string }>;
+  /** Take a snapshot after an agent turn */
+  take(sessionId: string, turnNumber: number, cwd: string, exec: WorkspaceExec): Promise<WorkspaceSnapshot | null>;
+};
+
+export function createSnapshotApi(root: string, exec: WorkspaceExec): SnapshotApi {
+  const snapshots = new Map<string, WorkspaceSnapshot[]>();
+
+  async function runGit(args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    return exec("git", args, root);
+  }
+
+  async function list(sessionId: string): Promise<WorkspaceSnapshot[]> {
+    return snapshots.get(sessionId) ?? [];
+  }
+
+  async function rollback(sessionId: string, commitHash: string): Promise<{ ok: boolean; error?: string }> {
+    const result = await runGit(["reset", "--hard", commitHash]);
+    if (result.exitCode !== 0) {
+      return { ok: false, error: `回滚失败: ${result.stderr.trim() || "未知错误"}` };
+    }
+    return { ok: true };
+  }
+
+  async function take(sessionId: string, turnNumber: number, cwd: string, localExec: WorkspaceExec): Promise<WorkspaceSnapshot | null> {
+    // Check if there are any changes
+    const statusResult = await localExec("git", ["status", "--porcelain"], cwd);
+    if (statusResult.exitCode !== 0 || !statusResult.stdout.trim()) {
+      return null; // No changes, skip
+    }
+
+    // Stage all changes
+    const addResult = await localExec("git", ["add", "-A"], cwd);
+    if (addResult.exitCode !== 0) {
+      return null;
+    }
+
+    // Get changed files
+    const diffResult = await localExec("git", ["diff", "--cached", "--name-only"], cwd);
+    const changedFiles = diffResult.stdout.split("\n").filter(Boolean);
+
+    if (changedFiles.length === 0) {
+      return null; // No files changed
+    }
+
+    // Commit
+    const commitMsg = `omp-snapshot: session-${sessionId} turn-${turnNumber}`;
+    const commitResult = await localExec("git", ["commit", "-m", commitMsg], cwd);
+    if (commitResult.exitCode !== 0) {
+      return null;
+    }
+
+    // Get commit hash
+    const hashResult = await localExec("git", ["rev-parse", "HEAD"], cwd);
+    const commitHash = hashResult.stdout.trim();
+
+    const snapshot: WorkspaceSnapshot = {
+      commitHash,
+      sessionId,
+      turnNumber,
+      timestamp: new Date().toISOString(),
+      changedFiles
+    };
+
+    // Store snapshot
+    const sessionSnapshots = snapshots.get(sessionId) ?? [];
+    sessionSnapshots.push(snapshot);
+    snapshots.set(sessionId, sessionSnapshots);
+
+    return snapshot;
+  }
+
+  return { list, rollback, take };
+}

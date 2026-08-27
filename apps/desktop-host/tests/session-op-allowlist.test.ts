@@ -25,6 +25,9 @@ const topLevelOperations = [
   "workspace.status",
   "workspace.diff",
   "workspace.apply",
+  "snapshot.take",
+  "snapshot.list",
+  "snapshot.rollback",
   "events.replay",
   "approval.rules.list",
   "approval.rules.add",
@@ -54,6 +57,9 @@ test("renderer direct commands use only declared top-level operations", () => {
   const service = readFileSync(servicePath, "utf8");
   const declared = new Set(requestKeyNames(service));
   const expectedDirectRust = [
+    "snapshot.take",
+    "snapshot.list",
+    "snapshot.rollback",
     "session.list",
     "session.messages",
     "session.fork",

@@ -46,7 +46,9 @@ local Host protocol or dedicated Rust request helpers:
 | `workspace.status` | `{ requestId, type }` | bounded changed-file list or `WORKSPACE_*` code |
 | `workspace.diff`
 | `workspace.apply` | `path`, `action` | `{ ok, error }` | 接受或回滚工作区变更
+| `snapshot.take` | `sessionId`, `turnNumber` | `{ commitHash, turnNumber, changedFiles }` or null if no changes |\n| `snapshot.list` | `sessionId` | `{ snapshot[] }` list of snapshots for session |\n| `snapshot.rollback` | `sessionId`, `commitHash` | `{ ok, error }` after git reset --hard |
 | `workspace.apply` | `path` (project-relative) | bounded diff result or stable validation code |
+| `snapshot.take` | `sessionId`, `turnNumber` | `{ commitHash, turnNumber, changedFiles }` or null if no changes |\n| `snapshot.list` | `sessionId` | `{ snapshot[] }` list of snapshots for session |\n| `snapshot.rollback` | `sessionId`, `commitHash` | `{ ok, error }` after git reset --hard |
 | `events.replay` | `sessionId`, `afterSeq` | journaled timeline events after `afterSeq`; `dropped=true` requires message re-hydration |
 | `approval.rules.list` | `sessionId` | `{ session, project }` grant lists for the routed session |
 | `approval.rules.add` | `sessionId`, `tool`, `scope`, `sourceInteractionId` | grant outcome; tool charset/scope validated, duplicates return `created:false` |

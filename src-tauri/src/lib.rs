@@ -10,6 +10,44 @@ mod host;
 mod local_frame;
 mod process_supervisor;
 
+#[tauri::command]
+fn snapshot_take(
+    session_id: String,
+    turn_number: u32,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "snapshot.take",
+        serde_json::json!({ "sessionId": session_id, "turnNumber": turn_number }),
+    )
+}
+
+#[tauri::command]
+fn snapshot_list(
+    session_id: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "snapshot.list",
+        serde_json::json!({ "sessionId": session_id }),
+    )
+}
+
+#[tauri::command]
+fn snapshot_rollback(
+    session_id: String,
+    commit_hash: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "snapshot.rollback",
+        serde_json::json!({ "sessionId": session_id, "commitHash": commit_hash }),
+    )
+}
+
 #[cfg(test)]
 mod contract_vectors;
 
@@ -431,6 +469,9 @@ pub fn run() {
             workspace_changes,
             workspace_apply,
             workspace_diff,
+            snapshot_take,
+            snapshot_list,
+            snapshot_rollback,
             events_replay,
             approval_rules_list,
             approval_rules_add,
@@ -527,3 +568,5 @@ mod harness_command_tests {
         );
     }
 }
+
+
