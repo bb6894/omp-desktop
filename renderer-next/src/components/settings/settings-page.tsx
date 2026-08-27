@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { 
-  ArrowLeft, Settings as SettingsIcon, Palette, Cube,
+  ArrowLeft, Settings as SettingsIcon, Palette, Box,
   Brain, Bot, Puzzle, Plug, Zap, Terminal, Anchor,
   Globe, Monitor, Database, BarChart3, Lock,
-  Switch as SwitchIcon
-} from "lucide-react";
+  } from "lucide-react";
 
 type SettingCategory = "general" | "appearance" | "models" | "memory" | "agents" | "plugins" | "mcp" | "skills" | "commands" | "hooks" | "browser" | "computer" | "database" | "stats" | "security";
 
@@ -18,7 +17,7 @@ interface SettingItem {
 const settingsItems: SettingItem[] = [
   { id: "general", label: "常规", icon: SettingsIcon, group: "基础设置" },
   { id: "appearance", label: "外观", icon: Palette, group: "基础设置" },
-  { id: "models", label: "模型设置", icon: Cube, group: "基础设置" },
+  { id: "models", label: "模型设置", icon: Box, group: "基础设置" },
   { id: "memory", label: "记忆", icon: Brain, group: "Agent 能力" },
   { id: "agents", label: "子智能体", icon: Bot, group: "Agent 能力" },
   { id: "plugins", label: "插件", icon: Puzzle, group: "Agent 能力" },
@@ -39,12 +38,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const [activeSetting, setActiveSetting] = useState<SettingCategory>("models");
-  const _settings: Record<string, any> = {
-    theme: "dark",
-    language: "zh-CN",
-    autoSave: true,
-    notify: true
-  };
+  // settings state removed for simplicity
 
   const renderContent = () => {
     switch (activeSetting) {
