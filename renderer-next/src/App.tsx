@@ -29,6 +29,8 @@ import type {
 } from "./bridge/product-bridge";
 import { Composer } from "./ui/composer";
 import { ErrorBoundary } from "./ui/error-boundary";
+import { SettingsPage } from "./ui/settings-page";
+import { CommandPalette } from "./ui/command-palette";
 
 /** One-line human summary of a slash-command response payload. */
 function summarizeCommandResult(data: Record<string, unknown>): string {
@@ -795,15 +797,88 @@ function Workbench({ transport }: { transport: Transport }) {
   );
 }
 
+const SETTINGS_KEY = "omp.renderer-next.settings";
+
+type AppSettings = {
+  defaultModel: string;
+  defaultThinkingLevel: string;
+  theme: "dark" | "light" | "system";
+  fontSize: "small" | "medium" | "large";
+  language: "zh-CN" | "en";
+  approvalMode: "ask" | "auto" | "plan";
+};
+
+function loadSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask" };
+    const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    return { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask", ...parsed };
+  } catch {
+    return { defaultModel: "", defaultThinkingLevel: "medium", theme: "dark", fontSize: "medium", language: "zh-CN", approvalMode: "ask" };
+  }
+}
+
+function saveSettings(s: AppSettings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
+}
+
 function AppContent() {
+  const [settings, setSettings] = useState<AppSettings>(loadSettings);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+
   const bridge = useMemo(() => {
     const real = resolveDefaultBridge();
     if (!real) throw new Error("PRODUCT_TAURI_UNAVAILABLE");
     return real;
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key === ',') {
+        e.preventDefault();
+        setShowSettings(true);
+        return;
+      }
+      if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowSettings(false);
+        setShowCommandPalette(false);
+      }
+    }
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  function updateSettings(updater: Partial<AppSettings>) {
+    const next = { ...settings, ...updater };
+    setSettings(next);
+    saveSettings(next);
+  }
+
   return (
     <ProductBridgeProvider bridge={bridge}>
       <Workbench transport="tauri" />
+      {showSettings && (
+        <div className="settings-overlay">
+          <SettingsPage settings={settings} onUpdate={updateSettings} onClose={() => setShowSettings(false)} />
+        </div>
+      )}
+      {showCommandPalette && (
+        <CommandPalette
+          commands={[
+            { id: "new-session", label: "新建会话", description: "创建新的对话", shortcut: "Ctrl+N", action: () => setShowCommandPalette(false) },
+            { id: "open-settings", label: "设置", description: "打开设置页面", shortcut: "Ctrl+,", action: () => { setShowSettings(true); setShowCommandPalette(false); } },
+          ]}
+          onClose={() => setShowCommandPalette(false)}
+        />
+      )}
     </ProductBridgeProvider>
   );
 }

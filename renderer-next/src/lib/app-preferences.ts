@@ -4,11 +4,42 @@
  * gracefully when storage is unavailable (private mode, denied permission).
  */
 
+export type ThemeMode = "dark" | "light" | "system";
+export type Language = "zh-CN" | "en";
+export type ApprovalMode = "ask" | "auto" | "plan";
+export type FontSize = "small" | "medium" | "large";
+
+export type AppSettings = {
+  defaultModel: string;
+  defaultThinkingLevel: string;
+  theme: ThemeMode;
+  fontSize: FontSize;
+  language: Language;
+  approvalMode: ApprovalMode;
+  terminalShell: string;
+  terminalMaxLines: number;
+};
+
+export function defaultSettings(): AppSettings {
+  return {
+    defaultModel: "",
+    defaultThinkingLevel: "medium",
+    theme: "dark",
+    fontSize: "medium",
+    language: "zh-CN",
+    approvalMode: "ask",
+    terminalShell: "cmd.exe",
+    terminalMaxLines: 1000
+  };
+}
+
 export type AppPreferences = {
   lastProjectPath: string | null;
   lastSessionId: string | null;
   /** Per-session reviewed workspace file paths (diff review marks). */
   reviewedFiles: Record<string, readonly string[]>;
+  /** UI settings persisted across sessions. */
+  settings: AppSettings;
 };
 
 export type StorageLike = {
@@ -19,7 +50,7 @@ export type StorageLike = {
 const KEY = "omp.renderer-next.workbench";
 
 export function defaultPreferences(): AppPreferences {
-  return { lastProjectPath: null, lastSessionId: null, reviewedFiles: {} };
+  return { lastProjectPath: null, lastSessionId: null, reviewedFiles: {}, settings: defaultSettings() };
 }
 
 function memoryStorage(): StorageLike {
@@ -46,6 +77,17 @@ function parsePreferences(value: unknown): AppPreferences {
   for (const [key, field] of Object.entries(value)) {
     if ((key === "lastProjectPath" || key === "lastSessionId") && (field === null || typeof field === "string")) {
       result[key] = field;
+    }
+    if (key === "settings" && typeof field === "object" && field !== null && !Array.isArray(field)) {
+      const s = field as Record<string, unknown>;
+      if (typeof s.defaultModel === "string") result.settings.defaultModel = s.defaultModel;
+      if (["low", "medium", "high", "xhigh"].includes(s.defaultThinkingLevel as string)) result.settings.defaultThinkingLevel = s.defaultThinkingLevel as string;
+      if (["dark", "light", "system"].includes(s.theme as string)) result.settings.theme = s.theme as ThemeMode;
+      if (["small", "medium", "large"].includes(s.fontSize as string)) result.settings.fontSize = s.fontSize as FontSize;
+      if (["zh-CN", "en"].includes(s.language as string)) result.settings.language = s.language as Language;
+      if (["ask", "auto", "plan"].includes(s.approvalMode as string)) result.settings.approvalMode = s.approvalMode as ApprovalMode;
+      if (typeof s.terminalShell === "string") result.settings.terminalShell = s.terminalShell;
+      if (typeof s.terminalMaxLines === "number") result.settings.terminalMaxLines = s.terminalMaxLines;
     }
     if (key === "reviewedFiles" && typeof field === "object" && field !== null && !Array.isArray(field)) {
       for (const [sessionId, paths] of Object.entries(field)) {
