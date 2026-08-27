@@ -2,11 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+- Chinese IME support: composer textarea now listens to `compositionstart`/`compositionend` events to prevent Enter from firing during CJK input.
+- Chinese font fallback chain added to global CSS: `PingFang SC`, `Microsoft YaHei`, `Source Han Sans CN`, `Noto Sans SC` for UI; `JetBrains Mono`, `Fira Code`, `Source Code Pro` for code regions.
+- Tool-call cards in timeline now show Chinese labels (e.g. "读取文件", "写入文件", "执行命令") with the English tool name as a subtitle.
+- Workspace changes panel in right rail exposes `applyWorkspaceChange(path, action)` on the bridge (stub) and a `useWorkspaceActions` hook for future Accept/Reject buttons.
+- Session delete UI hook wired into `LeftRail` / `SessionItem` via an optional `onDelete?: (sessionId: string) => void` prop; the 🗑 button calls it when clicked.
+- `renderer-next/src/lib/date-format.ts` added with `formatRelativeTime(isoString)` for Chinese-friendly date display (`刚刚`, `X分钟前`, `今天 HH:mm`, `昨天 HH:mm`, `周X HH:mm`, `M月D日`).
+- All new symbols are tested: 60 renderer tests pass, typecheck clean.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Added
 - Desktop-side approval rules engine (codex-style amend semantics):
   desktop-owned runtimes now spawn with `--approval-mode write` instead of
   silently inheriting the Runtime's `yolo` default, so exec-tier tools ask
@@ -114,7 +121,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.1.1] - 2026-05-10
 
-### Added
 
 - `/login` command with OAuth provider picker (fetches providers via `get_login_providers` RPC)
 - Ask tool rendered as inline chat bubble with `rpc-ui` mode support _(requires [can1357/oh-my-pi#994](https://github.com/can1357/oh-my-pi/pull/994) to be merged)_
@@ -128,7 +134,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.1.0] - 2026-05-10
 
-### Added
 
 - Initial Tauri 2 shell: spawns `omp --mode rpc` per tab, no bundler, JSX transpiled in-browser via `@babel/standalone`
 - GitHub Actions CI (cargo check + cargo test on win/linux/mac) and release pipeline
