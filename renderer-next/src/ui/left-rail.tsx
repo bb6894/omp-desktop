@@ -12,6 +12,8 @@ function isContinuable(view: SessionViewData, isSelected: boolean): boolean {
 }
 
 export function LeftRail({
+  onDelete,
+
 
   views,
   selectedId,
@@ -33,6 +35,7 @@ export function LeftRail({
   views: readonly SessionViewData[];
   selectedId: string | null;
   onSelect: (sessionId: string) => void;
+  onDelete?: (sessionId: string) => void;
   onContinue?: (sessionId: string) => void;
   onNewSession?: () => void;
   canCreate?: boolean;
@@ -78,6 +81,7 @@ export function LeftRail({
                 onConfirmFork={onConfirmFork}
                 onConfirmHandoff={onConfirmHandoff}
                 onCancel={onCancel}
+                onDelete={onDelete}
               />
             ))}
             {groups[key].length === 0 && <li className="left-rail__empty">暂无会话</li>}
@@ -112,6 +116,7 @@ function SessionItem({
   onHandoffInput,
   onConfirmFork,
   onConfirmHandoff,
+  onDelete,
   onCancel,
 }: {
   view: SessionViewData;
@@ -120,6 +125,7 @@ function SessionItem({
   onRename?: (sessionId: string, name: string) => void;
   onContinue?: (sessionId: string) => void;
   mode: RailMode;
+  onDelete: ((sessionId: string) => void) | undefined;
   isModeSession: boolean;
   forkInput: string;
   handoffInput: string;
@@ -230,6 +236,14 @@ function SessionItem({
             }}
           >
             {mode === "handoff" && isModeSession ? "✕" : "⇥"}
+          </button>
+          <button
+            type="button"
+            className="left-rail__action left-rail__action--delete"
+            title="删除会话"
+            onClick={(e) => { e.stopPropagation(); onDelete?.(view.id); }}
+          >
+            🗑
           </button>
         </div>
       </div>
