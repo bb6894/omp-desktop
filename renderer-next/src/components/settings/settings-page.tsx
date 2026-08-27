@@ -39,7 +39,7 @@ interface SettingsPageProps {
 
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const [activeSetting, setActiveSetting] = useState<SettingCategory>("models");
-  const [settings, setSettings] = useState({
+  const _settings = {
     theme: "dark",
     language: "zh-CN",
     autoSave: true,

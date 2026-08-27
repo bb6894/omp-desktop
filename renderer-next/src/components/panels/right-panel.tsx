@@ -8,7 +8,7 @@ interface RightPanelProps {
   sessionId?: string;
 }
 
-export function RightPanel({ sessionId }: RightPanelProps) {
+export function RightPanel(_props: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<"detail" | "changes" | "preview">("detail");
 
   return (
