@@ -95,7 +95,7 @@ const REQUEST_KEYS = {
   "workspace.apply": ["action", "path", "requestId", "type"],
   "snapshot.take": ["sessionId", "turnNumber", "requestId", "type"],
   "snapshot.list": ["sessionId", "requestId", "type"],
-  "snapshot.rollback": ["sessionId", "commitHash", "requestId", "type"],"
+  "snapshot.rollback": ["sessionId", "commitHash", "requestId", "type"],
   "events.replay": ["afterSeq", "requestId", "sessionId", "type"],
   "approval.rules.list": ["requestId", "sessionId", "type"],
   "approval.rules.add": ["requestId", "sessionId", "type", "tool", "scope", "sourceInteractionId"],
