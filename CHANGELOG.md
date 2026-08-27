@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   an n/total counter, mark-all action, persisted per session across
   restarts.
 - Fixed a first-real-session fatal bug on clean machines: the Bun-compiled
+- Runtime auto-update check: the Host queries GitHub releases on startup, compares local binary SHA-256 against pinned manifest, and emits a timeline event. The right panel shows a notification banner when a newer version is available.
   Host resolves `pi_natives.win32-x64-*.node` at runtime, and the bundle did
   not ship it — the first agent turn died with MODULE_NOT_FOUND behind a
   perpetual "正在加载会话…" screen (red-team attack 2, now closed).
