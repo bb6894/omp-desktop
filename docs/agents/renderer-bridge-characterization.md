@@ -30,6 +30,7 @@ local Host protocol or dedicated Rust request helpers:
 |---|---|---|
 | `session.list` | `{ requestId, type }` | read-only session records |
 | `session.messages` | `sessionId`, nullable `cursor`, numeric `limit` | paged history; stale cursor is stable error |
+| `get_messages_page` | `sessionId`, cursor, limit | paged message history via Runtime RPC v2; stable `MESSAGES_PAGE_*` error codes |
 | `session.fork` | `sessionId` | creates a `desktop-owned` child; source remains read-only |
 | `session.views` | `{ requestId, type }` | Host-assembled session views + metadata/prune counts, or stable `SESSION_METADATA_*` code |
 | `session.metadata.set` | `sessionId` (target), patch (`archived` / `pinned` / `lastViewedAt`) | merged record or stable validation/lock code |
@@ -48,7 +49,7 @@ local Host protocol or dedicated Rust request helpers:
 | `approval.rules.list` | `sessionId` | `{ session, project }` grant lists for the routed session |
 | `approval.rules.add` | `sessionId`, `tool`, `scope`, `sourceInteractionId` | grant outcome; tool charset/scope validated, duplicates return `created:false` |
 | `approval.rules.remove` | rule `id` (`session:<tool>` / `project:<tool>`) | `{ removed }`; idempotent |
-
+| `host_tool.call` | `sessionId`, `tool`, `action`, optional `text`/`image` | clipboard read/write text or images; fails `CLIPBOARD_UNAVAILABLE` when not wired |
 
 Unknown top-level names, malformed shapes, extra fields, and duplicate request
 ids fail closed. The nested `agent.command` names are owned by Agent/RPC tests

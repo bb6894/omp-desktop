@@ -7,8 +7,9 @@
     "build": "bun build src/index.ts --compile --target=bun-windows-x64 --outfile=../../artifacts/omp-desktop-host.exe"
   },
   "dependencies": {
-    "@oh-my-pi/pi-coding-agent": "17.4.1",
-    "@oh-my-pi/pi-natives-win32-x64": "17.4.1",
-    "@oh-my-pi/pi-utils": "17.4.1"
+    "@oh-my-pi/pi-coding-agent": "18.0.6",
+    "@oh-my-pi/pi-natives-win32-x64": "18.0.6",
+    "@oh-my-pi/pi-utils": "18.0.6",
+    "clipboardy": "^5.3.2"
   }
 }

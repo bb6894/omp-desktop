@@ -8,6 +8,7 @@ const characterizationPath = resolve(import.meta.dir, "../../../docs/agents/rend
 
 const topLevelOperations = [
   "session.list",
+  "get_messages_page",
   "session.messages",
   "session.fork",
   "harness.inspect",
@@ -26,6 +27,7 @@ const topLevelOperations = [
   "events.replay",
   "approval.rules.list",
   "approval.rules.add",
+  "host_tool.call",
   "approval.rules.remove"
 ] as const;
 

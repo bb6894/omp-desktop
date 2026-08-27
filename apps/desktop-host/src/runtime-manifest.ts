@@ -1,3 +1,11 @@
+/**
+ * Runtime manifest — pins the verified OMP runtime combination.
+ *
+ * NOTE: 18.0.6 npm packages are API-compatible with 17.4.1 binary.
+ * New features (get_messages_page, set_host_tools, ThinkingLevel.Max)
+ * are available in the npm packages but require a published 18.x binary.
+ * Pinning to 17.4.1 binary for now; upgrade binary when published.
+ */
 export type RuntimeManifest = {
   ompVersion: "17.4.1";
   codingAgentPackage: "@oh-my-pi/pi-coding-agent@17.4.1";

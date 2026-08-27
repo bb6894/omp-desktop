@@ -19,6 +19,7 @@ test("keeps one explicit renderer-to-Rust command surface", () => {
     "stop_session",
     "session_status",
     "list_sessions",
+    "get_messages_page",
     "load_session_messages",
     "fork_session",
     "session_views",

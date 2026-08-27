@@ -24,6 +24,7 @@ export type MessagePage = {
 
 export type HostRequest =
   | { type: "session.list"; requestId: string }
+  | { type: "get_messages_page"; requestId: string; sessionId: string; cursor: string | null; limit: number }
   | { type: "session.messages"; requestId: string; sessionId: string; cursor: string | null; limit: number }
   | { type: "session.fork"; requestId: string; sessionId: string }
   | { type: "harness.inspect"; requestId: string }
@@ -43,3 +44,14 @@ export type HostEvent = {
   name: string;
   payload: unknown;
 };
+
+export type ClipboardImage = {
+  data: string;
+  mimeType: string;
+};
+
+export type HostToolRequest =
+  | { type: "clipboard.read" }
+  | { type: "clipboard.write"; text: string }
+  | { type: "clipboard.read-image" }
+  | { type: "clipboard.write-image"; image: ClipboardImage };

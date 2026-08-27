@@ -378,3 +378,75 @@ test("maps mutation executor failures to stable codes without echoing messages",
   expect(response).toMatchObject({ ok: false, code: "INTERNAL_ERROR" });
   expect(JSON.stringify(response)).not.toContain("leak-title-marker");
 });
+test("get_messages_page delegates to adapter.loadMessagesReadOnly", async () => {
+  const messages = [
+    { role: "user", text: "a" },
+    { role: "assistant", text: "b" }
+  ];
+  let capturedArgs: [string, string | null, number] | null = null;
+  const adapter: OmpSessionAdapter = {
+    ...fakeAdapter(),
+    loadMessagesReadOnly: async (sessionId, cursor, limit) => {
+      capturedArgs = [sessionId, cursor, limit];
+      return { sessionId, messages, nextCursor: null, staleCursor: false, hasMore: false };
+    }
+  };
+  const service = new SessionService(adapter);
+  const response = await service.dispatch({
+    type: "get_messages_page",
+    requestId: "g1",
+    sessionId: "s",
+    cursor: null,
+    limit: 50
+  });
+  expect(response).toMatchObject({ ok: true });
+  expect(capturedArgs).toEqual(["s", null, 50]);
+});
+
+test("host_tool.call routes clipboard read/write through the injected seam", async () => {
+  const service = new SessionService(fakeAdapter());
+  service.setClipboardApi({
+    readText: async () => "clipboard text",
+    writeText: async () => undefined,
+    readImage: async () => ({ data: "abc", mimeType: "image/png" }),
+    writeImage: async () => undefined
+  });
+  // read
+  const readResp = await service.dispatch({
+    type: "host_tool.call", requestId: "cb1", sessionId: "s1", tool: "clipboard", action: "read"
+  });
+  expect(readResp).toMatchObject({ ok: true, value: "clipboard text" });
+  // write
+  const writeResp = await service.dispatch({
+    type: "host_tool.call", requestId: "cb2", sessionId: "s1", tool: "clipboard", action: "write", text: "hello"
+  });
+  expect(writeResp).toMatchObject({ ok: true });
+  // read-image
+  const imgResp = await service.dispatch({
+    type: "host_tool.call", requestId: "cb3", sessionId: "s1", tool: "clipboard", action: "read-image"
+  });
+  expect(imgResp).toMatchObject({ ok: true, value: { data: "abc", mimeType: "image/png" } });
+  // write-image
+  const writeImgResp = await service.dispatch({
+    type: "host_tool.call", requestId: "cb4", sessionId: "s1", tool: "clipboard", action: "write-image",
+    image: { data: "xyz", mimeType: "image/jpeg" }
+  });
+  expect(writeImgResp).toMatchObject({ ok: true });
+  // missing clipboard api
+  const svcNoClip = new SessionService(fakeAdapter());
+  const noClipResp = await svcNoClip.dispatch({
+    type: "host_tool.call", requestId: "cb5", sessionId: "s1", tool: "clipboard", action: "read"
+  });
+  expect(noClipResp).toMatchObject({ ok: false, code: "CLIPBOARD_UNAVAILABLE" });
+  // unknown tool rejected
+  const badToolResp = await service.dispatch({
+    type: "host_tool.call", requestId: "cb6", sessionId: "s1", tool: "unknown", action: "read"
+  });
+  expect(badToolResp).toMatchObject({ ok: false, code: "UNKNOWN_COMMAND" });
+  // invalid image shape rejected
+  const badImgResp = await service.dispatch({
+    type: "host_tool.call", requestId: "cb7", sessionId: "s1", tool: "clipboard", action: "write-image",
+    image: { data: 123, mimeType: "image/png" }
+  });
+  expect(badImgResp).toMatchObject({ ok: false, code: "INVALID_REQUEST" });
+});

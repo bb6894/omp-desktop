@@ -65,7 +65,8 @@ export class OfficialOmpSessionAdapter implements OmpSessionAdapter {
       sessionId,
       messages: page,
       nextCursor,
-      staleCursor: false
+      staleCursor: false,
+      hasMore: nextCursor !== null
     };
   }
 

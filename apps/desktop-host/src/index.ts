@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { SessionMetadataStore } from "./session-metadata-store";
 import { collectStatus, buildDiff, nodeExec } from "./workspace";
 import { ApprovalRuleBook } from "./approval-rules";
-
+import { createClipboardApi } from "./clipboard";
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
 export { OmpRpcBridge, RpcLineDecoder } from "./rpc-bridge";
 export { hashRuntime, resolveBundledRuntime, spawnVerifiedRuntime, verifyRuntime } from "./runtime";
@@ -66,6 +66,7 @@ export function createHostSessionService(
     status: () => collectStatus(cwd, nodeExec),
     diff: (path) => buildDiff(cwd, path, nodeExec)
   });
+  sessions.setClipboardApi(createClipboardApi());
   return sessions;
 }
 

@@ -53,6 +53,13 @@ export type AgentServiceApi = {
   stateOf(sessionId: string): AgentState | null;
 };
 
+export type ClipboardApi = {
+  readText(): Promise<string>;
+  writeText(text: string): Promise<void>;
+  readImage(): Promise<{ data: string; mimeType: string } | null>;
+  writeImage(data: string, mimeType: string): Promise<void>;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -67,6 +74,7 @@ function isRequestId(value: unknown): value is string {
 
 const REQUEST_KEYS = {
   "session.list": ["requestId", "type"],
+  "get_messages_page": ["cursor", "limit", "requestId", "sessionId", "type"],
   "session.messages": ["cursor", "limit", "requestId", "sessionId", "type"],
   "session.fork": ["requestId", "sessionId", "type"],
   "harness.inspect": ["requestId", "type"],
@@ -85,6 +93,7 @@ const REQUEST_KEYS = {
   "events.replay": ["afterSeq", "requestId", "sessionId", "type"],
   "approval.rules.list": ["requestId", "sessionId", "type"],
   "approval.rules.add": ["requestId", "sessionId", "type", "tool", "scope", "sourceInteractionId"],
+  "host_tool.call": ["action", "image", "requestId", "sessionId", "text", "tool", "type"],
   "approval.rules.remove": ["id", "requestId", "type"]
 } as const;
 
@@ -164,9 +173,9 @@ const KNOWN_ERRORS = new Set([
   "SESSION_METADATA_STORE_UNAVAILABLE",
   "SESSION_METADATA_LOCK_TIMEOUT",
   "SESSION_SOURCE_READONLY",
-  "AGENT_SERVICE_UNAVAILABLE",
   "WORKSPACE_UNAVAILABLE",
-  "WORKSPACE_PATH_INVALID"
+  "WORKSPACE_PATH_INVALID",
+  "CLIPBOARD_UNAVAILABLE"
 ]);
 
 function knownError(error: unknown): string | null {
@@ -183,7 +192,7 @@ export class SessionService {
   private eventSink: (event: HostEvent) => void = () => undefined;
   private agentService: AgentServiceApi | null = null;
   private workspace: WorkspaceApi | null = null;
-  private approvalRules: ApprovalRulesApi | null = null;
+  private clipboardApi: ClipboardApi | null = null;
   constructor(
     private readonly sessions: OmpSessionAdapter,
     private readonly harness: HarnessInspectorApi | null = null,
@@ -215,6 +224,9 @@ export class SessionService {
     this.approvalRules = approvalRules;
   }
 
+  setClipboardApi(clipboardApi: ClipboardApi): void {
+    this.clipboardApi = clipboardApi;
+  }
   setEventSink(eventSink: (event: HostEvent) => void): void {
     this.eventSink = eventSink;
   }
@@ -285,6 +297,16 @@ export class SessionService {
       switch (input.type) {
         case "session.list":
           return { type: "response", requestId, ok: true, value: await this.sessions.listReadOnly() };
+        case "get_messages_page":
+          if (typeof input.sessionId !== "string" || (input.cursor !== null && typeof input.cursor !== "string") || typeof input.limit !== "number") {
+            return responseError(requestId, "INVALID_REQUEST");
+          }
+          return {
+            type: "response",
+            requestId,
+            ok: true,
+            value: await this.sessions.loadMessagesReadOnly(input.sessionId, input.cursor, input.limit)
+          };
         case "session.messages":
           if (typeof input.sessionId !== "string" || (input.cursor !== null && typeof input.cursor !== "string") || typeof input.limit !== "number") {
             return responseError(requestId, "INVALID_REQUEST");
@@ -472,6 +494,43 @@ export class SessionService {
           }
           const removed = await this.approvalRules.revoke(input.id);
           return { type: "response", requestId, ok: true, value: { removed } };
+        }
+        case "host_tool.call": {
+          if (!this.clipboardApi || typeof input.sessionId !== "string" || typeof input.tool !== "string" || typeof input.action !== "string") {
+            return responseError(requestId, "CLIPBOARD_UNAVAILABLE");
+          }
+          const api = this.clipboardApi;
+          const safeSessionId = input.sessionId;
+          const safeTool = input.tool;
+          const safeAction = input.action;
+          if (safeTool !== "clipboard") return responseError(requestId, "UNKNOWN_COMMAND");
+          try {
+            if (safeAction === "read") {
+              const text = await api.readText();
+              return { type: "response", requestId, ok: true, value: text };
+            }
+            if (safeAction === "write") {
+              const text = typeof input.text === "string" ? input.text : "";
+              await api.writeText(text);
+              return { type: "response", requestId, ok: true };
+            }
+            if (safeAction === "read-image") {
+              const image = await api.readImage();
+              return { type: "response", requestId, ok: true, value: image ?? null };
+            }
+            if (safeAction === "write-image") {
+              const image = input.image;
+              if (!isRecord(image) || typeof image.data !== "string" || typeof image.mimeType !== "string") {
+                return responseError(requestId, "INVALID_REQUEST");
+              }
+              await api.writeImage(image.data, image.mimeType);
+              return { type: "response", requestId, ok: true };
+            }
+            return responseError(requestId, "UNKNOWN_COMMAND");
+          } catch (error) {
+            const code = knownError(error);
+            return responseError(requestId, code ?? "CLIPBOARD_UNAVAILABLE");
+          }
         }
         default:
           return responseError(requestId, "UNKNOWN_COMMAND");

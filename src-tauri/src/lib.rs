@@ -159,6 +159,20 @@ fn load_session_messages(
 }
 
 #[tauri::command]
+fn get_messages_page(
+    session_id: String,
+    target_session_id: String,
+    cursor: Option<String>,
+    limit: u32,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "get_messages_page",
+        serde_json::json!({ "sessionId": target_session_id, "cursor": cursor, "limit": limit }),
+    )
+}
+#[tauri::command]
 fn fork_session(
     session_id: String,
     target_session_id: String,
@@ -394,6 +408,7 @@ pub fn run() {
             stop_session,
             session_status,
             list_sessions,
+            get_messages_page,
             load_session_messages,
             fork_session,
             session_views,
