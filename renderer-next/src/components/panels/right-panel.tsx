@@ -40,7 +40,7 @@ export function RightPanel({ sessionId }: RightPanelProps) {
   );
 }
 
-function DetailTab({ sessionId }: { sessionId?: string }) {
+function DetailTab(_props: { sessionId?: string }) {
   return (
     <div className="space-y-4">
       {/* Session info */}
