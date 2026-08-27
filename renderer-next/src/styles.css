@@ -1455,3 +1455,18 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+/* Chinese font fallback chains */
+:root {
+  --font-ui: "PingFang SC", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans SC", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Source Code Pro", "Microsoft YaHei Mono", monospace;
+}
+
+/* Apply font families */
+body, button, input, textarea, select, .composer, .left-rail, .right-panel, .timeline {
+  font-family: var(--font-ui);
+}
+
+code, pre, .tl-card__output--code, .workspace-file__code {
+  font-family: var(--font-mono);
+}

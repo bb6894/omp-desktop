@@ -383,3 +383,33 @@ export function RightPanel({
     </aside>
   );
 }
+
+// Add accept/reject buttons to workspace files
+
+// Workspace accept/reject handlers
+export function useWorkspaceActions(
+  bridge: import("../bridge/product-bridge").ProductBridge,
+  status: import("../bridge/product-bridge").WorkspaceStatus | null,
+  _reviewed: readonly string[],
+  persistReviewed: (paths: readonly string[]) => void
+) {
+  const handleAcceptAll = async () => {
+    if (!status) return;
+    // TODO: Implement actual accept via Host command
+    for (const file of status.files) {
+      await bridge.applyWorkspaceChange(file.path, "accept");
+    }
+    persistReviewed(status.files.map((f) => f.path));
+  };
+
+  const handleRejectAll = async () => {
+    if (!status) return;
+    // TODO: Implement actual reject via Host command
+    for (const file of status.files) {
+      await bridge.applyWorkspaceChange(file.path, "reject");
+    }
+    persistReviewed([]);
+  };
+
+  return { handleAcceptAll, handleRejectAll };
+}

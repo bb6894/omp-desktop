@@ -173,3 +173,21 @@ export function Timeline({
     </div>
   );
 }
+
+// Extended tool labels for completion
+const ALL_TOOL_LABELS: Record<string, string> = {
+  ...TOOL_LABELS,
+  read_file: "读取文件",
+  write_file: "写入文件",
+  execute_command: "执行命令",
+  search: "内容搜索",
+  task: "子任务",
+  get_messages: "获取消息",
+  subagents: "查看子代理",
+  switch_session: "切换会话",
+  handoff: "交接会话"
+};
+
+export function getToolLabel(toolName: string): string {
+  return ALL_TOOL_LABELS[toolName] ?? toolName;
+}

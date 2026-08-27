@@ -65,10 +65,11 @@ export function Composer({
   const [value, setValue] = useState("");
   const [menuIndex, setMenuIndex] = useState(0);
   const [images, setImages] = useState<AttachedImage[]>([]);
+  const [isComposing, setIsComposing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const trimmed = value.trim();
   const parsedSlash = parseSlashInput(value);
   const bangCommand = parseBangInput(value);
+  const trimmed = value.trim();
   const menuOpen = parsedSlash !== null && !trimmed.includes("\n");
   const menuItems = useMemo(() => {
     if (!menuOpen || !parsedSlash) return [];
@@ -77,11 +78,18 @@ export function Composer({
   }, [menuOpen, parsedSlash, runtimeCommands]);
 
   useEffect(() => {
-    setMenuIndex(0);
-  }, [value]);
-  useEffect(() => {
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+  useEffect(() => {
+    const start = () => setIsComposing(true);
+    const end = () => setIsComposing(false);
+    document.addEventListener("compositionstart", start);
+    document.addEventListener("compositionend", end);
+    return () => {
+      document.removeEventListener("compositionstart", start);
+      document.removeEventListener("compositionend", end);
+    };
   }, []);
 
   async function addImageFile(file: File): Promise<void> {
@@ -309,7 +317,7 @@ export function Composer({
                 return;
               }
             }
-            if (event.key === "Enter" && !event.shiftKey && trimmed) {
+            if (event.key === "Enter" && !event.shiftKey && trimmed && !isComposing) {
               event.preventDefault();
               submit();
             }

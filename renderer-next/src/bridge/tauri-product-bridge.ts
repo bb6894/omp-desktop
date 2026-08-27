@@ -340,6 +340,11 @@ export function createTauriProductBridge(seams?: Partial<TauriSeams>): ProductBr
       return thin<WorkspaceDiff>("workspace_diff", { path });
     },
 
+
+    async applyWorkspaceChange(_path: string, _action: "accept" | "reject"): Promise<boolean> {
+      // TODO: Implement workspace apply/discard via Host command
+      return false;
+    },
     async listApprovalRules(): Promise<ApprovalRuleLists> {
       const rules = await thin<Partial<ApprovalRuleLists>>("approval_rules_list", {});
       return {

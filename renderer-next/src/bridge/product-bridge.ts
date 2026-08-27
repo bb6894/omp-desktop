@@ -102,6 +102,8 @@ export type ProductBridge = {
   removeApprovalRule(ruleId: string): Promise<void>;
   /** Renames a session by its id; empties or exceeds 64 chars are silently rejected. */
   renameSession(sessionId: string, name: string): Promise<void>;
+  /** Apply or discard a workspace change (accept/reject). */
+  applyWorkspaceChange(path: string, action: "accept" | "reject"): Promise<boolean>;
 };
 
 export const ProductBridgeContext = createContext<ProductBridge | null>(null);
@@ -120,3 +122,14 @@ export function useProductBridge(): ProductBridge {
   if (!bridge) throw new Error("PRODUCT_BRIDGE_MISSING");
   return bridge;
 }
+
+// Workspace action types for accept/reject
+export type WorkspaceActionResult = {
+  kind: "accept" | "reject";
+  path: string;
+  ok: boolean;
+  error?: string;
+};
+
+// Add workspace apply/discard methods
+export type WorkspaceApplyResult = { ok: boolean; path: string; error?: string };

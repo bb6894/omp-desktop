@@ -12,6 +12,7 @@ function isContinuable(view: SessionViewData, isSelected: boolean): boolean {
 }
 
 export function LeftRail({
+
   views,
   selectedId,
   onSelect,
@@ -312,3 +313,5 @@ function SessionItem({
     </li>
   );
 }
+
+// Helper to show delete button on hover
