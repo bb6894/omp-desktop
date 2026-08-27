@@ -824,6 +824,7 @@ function saveSettings(s: AppSettings) {
 }
 
 function AppContent() {
+  // Move handleEditAction to use outer scope variables
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);

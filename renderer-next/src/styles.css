@@ -1881,3 +1881,64 @@ code, pre, .tl-card__output--code, .workspace-file__code {
   color: var(--text-3);
   font-family: var(--font-mono, monospace);
 }
+
+/* Timeline inline edit styles */
+.tl-entry--editing {
+  position: relative;
+}
+
+.tl-text-wrap {
+  position: relative;
+}
+
+.tl-entry__edit {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.tl-entry:hover .tl-entry__edit {
+  opacity: 1;
+}
+
+.tl-entry__edit:hover {
+  background: var(--surface-3);
+}
+
+.tl-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.tl-textarea:focus {
+  outline: none;
+  border-color: var(--accent, #2f7d5c);
+}
+
+.tl-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tl-edit-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+}

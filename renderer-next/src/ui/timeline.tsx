@@ -23,12 +23,44 @@ const TOOL_LABELS: Record<string, string> = {
   todo_write: "更新计划",
   webfetch: "抓取网页"
 };
-function EntryBubble({ entry }: { entry: TimelineEntry }) {
+function EntryBubble({ entry, editing, onEdit }: { entry: TimelineEntry; editing?: { id: string; text: string }; onEdit?: (action: "start" | "update" | "cancel" | "submit", entryId?: string, text?: string) => void }) {
   if (entry.kind === "user") {
+    const isEditing = editing?.id === entry.id;
     return (
-      <div className="tl-entry tl-entry--user">
+      <div className={isEditing ? "tl-entry tl-entry--user tl-entry--editing" : "tl-entry tl-entry--user"} data-entry-id={entry.id}>
         <span className="tl-role">你</span>
-        <p className="tl-text">{entry.text}</p>
+        <div className="tl-text-wrap">
+          {isEditing ? (
+            <textarea
+              className="tl-textarea"
+              value={editing.text}
+              onChange={(e) => onEdit?.("update", entry.id, e.target.value)}
+              rows={3}
+            />
+          ) : (
+            <p className="tl-text">{entry.text}</p>
+          )}
+        </div>
+        {!isEditing && (
+          <button
+            type="button"
+            className="tl-entry__edit"
+            title="编辑此消息"
+            onClick={() => onEdit?.("start", entry.id, entry.text)}
+          >
+            ✏️
+          </button>
+        )}
+        {isEditing && (
+          <div className="tl-edit-actions">
+            <button type="button" className="button button--ghost tl-edit-btn" onClick={() => onEdit?.("cancel")}>
+              取消
+            </button>
+            <button type="button" className="button button--primary tl-edit-btn" onClick={() => onEdit?.("submit", entry.id, editing.text)}>
+              重新生成
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -144,10 +176,14 @@ function ToolCard({ entry }: { entry: Extract<TimelineEntry, { kind: "tool" }> }
 
 export function Timeline({
   model,
-  emptyHint
+  emptyHint,
+  editing,
+  onEdit
 }: {
   model: TimelineModel;
   emptyHint: string;
+  editing?: { id: string; text: string };
+  onEdit?: (action: "start" | "update" | "cancel" | "submit", entryId?: string, text?: string) => void;
 }) {
   if (model.entries.length === 0) {
     return (
@@ -162,7 +198,7 @@ export function Timeline({
         entry.kind === "tool" ? (
           <ToolCard key={entry.id} entry={entry} />
         ) : (
-          <EntryBubble key={entry.id} entry={entry} />
+          <EntryBubble key={entry.id} entry={entry} editing={editing} onEdit={onEdit} />
         )
       )}
       {model.unrecognized > 0 && (
