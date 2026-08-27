@@ -44,7 +44,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     language: "zh-CN",
     autoSave: true,
     notify: true
-  });
+  };
 
   const renderContent = () => {
     switch (activeSetting) {
