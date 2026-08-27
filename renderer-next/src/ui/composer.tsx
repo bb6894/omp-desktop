@@ -9,7 +9,7 @@ import {
   type SlashCommand
 } from "../lib/slash-commands";
 
-const MAX_IMAGES = 3;
+const MAX_IMAGES = 9;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
@@ -138,7 +138,9 @@ export function Composer({
   }
 
   const submit = () => {
-    if (!trimmed || busy) return;
+    // Allow sending when there are images even without text
+    const hasContent = trimmed || images.length > 0;
+    if (!hasContent || busy) return;
     if (bangCommand !== null && parsedSlash === null) {
       onRunBash(bangCommand);
       setValue("");

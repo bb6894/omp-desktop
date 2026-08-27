@@ -436,6 +436,17 @@ function Workbench({ transport }: { transport: Transport }) {
       setBusy(false);
     }
   }, [bridge, refresh, selectedId]);
+  const deleteSession = useCallback(async (sessionId: string) => {
+    // Remove from local state first for immediate feedback
+    setSelectedId(null);
+    setTimelines((prev) => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    await refresh();
+  }, [refresh]);
+
   const renameSession = useCallback(
     async (sessionId: string, name: string) => {
       const route = routes.current.get(sessionId);
@@ -522,8 +533,14 @@ function Workbench({ transport }: { transport: Transport }) {
 
 
   // Callback for WelcomePage when no session is selected
+  // Creates a new session and sends the message as first turn
   const sendPromptForWelcome = useCallback(async (message: string) => {
-    if (!selectedId) return;
+    if (!message.trim() || transport !== "tauri" || busy) return;
+    // If no session selected, create new one; otherwise use selected
+    if (!selectedId) {
+      await createSession(message);
+      return;
+    }
     const route = routes.current.get(selectedId);
     if (!route) return;
     try {
@@ -532,7 +549,7 @@ function Workbench({ transport }: { transport: Transport }) {
     } catch (error) {
       setNotice(error instanceof Error ? error.message : String(error));
     }
-  }, [bridge, refresh, selectedId]);
+  }, [bridge, refresh, selectedId, transport, busy, createSession]);
 
   const selected = useMemo(
     () => views?.find((view) => view.id === selectedId) ?? null,
@@ -586,6 +603,7 @@ function Workbench({ transport }: { transport: Transport }) {
             else if (railMode === "handoff") openHandoffMode(id);
             else applySelection(id, views);
           }}
+          onDelete={transport === "tauri" ? deleteSession : undefined}
           onContinue={transport === "tauri" ? (id) => void continueHistory(id) : undefined}
           onNewSession={transport === "tauri" ? () => void beginNewSession() : undefined}
           canCreate={transport === "tauri"}
