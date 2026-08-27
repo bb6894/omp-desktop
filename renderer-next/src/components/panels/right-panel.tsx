@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { 
   RefreshCw, RotateCcw, FileCode, GitCommit, 
-  Clock, Cpu, Layers, AlertCircle
+  Clock, Layers, AlertCircle
 } from "lucide-react";
 
 interface RightPanelProps {
   sessionId?: string;
 }
 
-export function RightPanel(_props: RightPanelProps) {
+export function RightPanel({ sessionId }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<"detail" | "changes" | "preview">("detail");
 
   return (
