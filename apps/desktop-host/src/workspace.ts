@@ -164,3 +164,39 @@ export class SessionWorkspaceError extends Error {
     super(code);
   }
 }
+
+/**
+ * Accept a workspace change: keep the current file as-is (git add).
+ * Reject: restore the file from HEAD (git checkout HEAD -- <path>).
+ */
+export async function applyWorkspaceChange(
+  root: string,
+  relativePath: string,
+  action: "accept" | "reject",
+  exec: WorkspaceExec
+): Promise<{ ok: boolean; error?: string }> {
+  const check = validateRelativePath(relativePath);
+  if (!check.ok) {
+    return { ok: false, error: `ERR_PATH_INVALID: 文件路径无效 (${check.code})` };
+  }
+  const safePath = check.value;
+  try {
+    if (action === "accept") {
+      // Stage the file (git add) to mark as accepted
+      const result = await runGit(root, ["add", safePath], exec);
+      if (result.exitCode !== 0) {
+        return { ok: false, error: `ERR_ACCEPT_FAILED: 无法接受变更 — ${result.stderr.trim() || "未知错误"}` };
+      }
+      return { ok: true };
+    } else {
+      // Restore from HEAD
+      const result = await runGit(root, ["checkout", "HEAD", "--", safePath], exec);
+      if (result.exitCode !== 0) {
+        return { ok: false, error: `ERR_REJECT_FAILED: 无法回滚变更 — ${result.stderr.trim() || "未知错误"}` };
+      }
+      return { ok: true };
+    }
+  } catch (err) {
+    return { ok: false, error: `ERR_WORKSPACE_${action.toUpperCase()}: 操作失败 — ${err instanceof Error ? err.message : String(err)}` };
+  }
+}

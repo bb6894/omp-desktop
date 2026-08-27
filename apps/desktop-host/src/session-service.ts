@@ -28,6 +28,8 @@ export type SessionMetadataApi = {
 };
 /** Bounded project workspace seam (changes/diff); injected once per Host process. */
 export type WorkspaceApi = {
+  apply(path: string, action: "accept" | "reject"): Promise<{ ok: boolean; error?: string }>;
+
   status(): Promise<unknown>;
   diff(path: string): Promise<unknown>;
 };
@@ -90,6 +92,7 @@ const REQUEST_KEYS = {
   "session.open_runtime": ["requestId", "routeSessionId", "sessionId", "type"],
   "workspace.status": ["requestId", "type"],
   "workspace.diff": ["path", "requestId", "type"],
+  "workspace.apply": ["action", "path", "requestId", "type"],
   "events.replay": ["afterSeq", "requestId", "sessionId", "type"],
   "approval.rules.list": ["requestId", "sessionId", "type"],
   "approval.rules.add": ["requestId", "sessionId", "type", "tool", "scope", "sourceInteractionId"],
@@ -459,6 +462,16 @@ export class SessionService {
           if (!this.workspace) return responseError(requestId, "WORKSPACE_UNAVAILABLE");
           const check = validateRelativePath(String(input.path ?? ""));
           if (!check.ok) return responseError(requestId, check.code);
+        }
+        case "workspace.apply": {
+          if (!this.workspace) return responseError(requestId, "WORKSPACE_UNAVAILABLE");
+          const input = validateRequest("workspace.apply", request, ["action", "path", "requestId", "type"]);
+          if (input.type !== "request") return input;
+          const pathCheck = validateRelativePath(input.path);
+          if (!pathCheck.ok) return responseError(requestId, pathCheck.code);
+          const result = await this.workspace.apply(pathCheck.value, input.action);
+          return { type: "response", requestId, ok: true, value: result };
+
           const diff: unknown = await this.workspace.diff(check.value);
           return { type: "response", requestId, ok: true, value: diff };
         }

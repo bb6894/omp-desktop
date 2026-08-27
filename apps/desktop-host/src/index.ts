@@ -10,7 +10,7 @@ import { HarnessMutationExecutor } from "./harness-mutation-executor";
 import { HarnessMutationService } from "./harness-mutation-service";
 import { join } from "node:path";
 import { SessionMetadataStore } from "./session-metadata-store";
-import { collectStatus, buildDiff, nodeExec } from "./workspace";
+import { collectStatus, buildDiff, nodeExec, applyWorkspaceChange } from "./workspace";
 import { ApprovalRuleBook } from "./approval-rules";
 import { createClipboardApi } from "./clipboard";
 export { OfficialOmpSessionAdapter } from "./omp-adapter";
@@ -64,7 +64,9 @@ export function createHostSessionService(
   sessions.setApprovalRules(ruleBook);
   sessions.setWorkspace({
     status: () => collectStatus(cwd, nodeExec),
-    diff: (path) => buildDiff(cwd, path, nodeExec)
+    diff: (path) => buildDiff(cwd, path, nodeExec),
+    apply: (path, action) => applyWorkspaceChange(cwd, path, action, nodeExec),
+    apply: (path, action) => applyWorkspaceChange(cwd, path, action, nodeExec)
   });
   sessions.setClipboardApi(createClipboardApi());
   return sessions;

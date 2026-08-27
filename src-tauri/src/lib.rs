@@ -232,6 +232,20 @@ fn workspace_changes(
 }
 
 #[tauri::command]
+fn workspace_apply(
+    session_id: String,
+    path: String,
+    action: String,
+    bridge: State<'_, HostBridge>,
+) -> Result<serde_json::Value, String> {
+    bridge.request(
+        &session_id,
+        "workspace.apply",
+        serde_json::json!({ "path": path, "action": action }),
+    )
+}
+
+#[tauri::command]
 fn workspace_diff(
     session_id: String,
     path: String,
@@ -415,6 +429,7 @@ pub fn run() {
             session_metadata_set,
             session_open_runtime,
             workspace_changes,
+            workspace_apply,
             workspace_diff,
             events_replay,
             approval_rules_list,

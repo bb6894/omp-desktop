@@ -26,6 +26,7 @@ test("keeps one explicit renderer-to-Rust command surface", () => {
     "session_metadata_set",
     "session_open_runtime",
     "workspace_changes",
+    "workspace_apply",
     "workspace_diff",
     "events_replay",
     "approval_rules_list",

@@ -50,6 +50,7 @@ export function RightPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reviewed, setReviewed] = useState<readonly string[]>([]);
+  const [applying, setApplying] = useState<Record<string, "accept" | "reject">>({});
 
   const loadChanges = useCallback(async () => {
     setLoading(true);
@@ -86,6 +87,45 @@ export function RightPanel({
     },
     [persistReviewed, reviewed]
   );
+
+  const handleApply = useCallback(
+    async (path: string, action: "accept" | "reject") => {
+      setApplying((prev) => ({ ...prev, [path]: action }));
+      try {
+        const ok = await bridge.applyWorkspaceChange(path, action);
+        if (ok) {
+          if (action === "accept") {
+            persistReviewed([...reviewed, path]);
+          }
+        } else {
+          setError(action === "accept" ? "接受失败" : "回滚功能开发中");
+        }
+      } catch {
+        setError(action === "accept" ? "接受失败" : "回滚功能开发中");
+      } finally {
+        setApplying((prev) => {
+          const next = { ...prev };
+          delete next[path];
+          return next;
+        });
+      }
+    },
+    [bridge, persistReviewed, reviewed]
+  );
+
+  const handleAcceptAll = useCallback(async () => {
+    if (!status) return;
+    for (const file of status.files) {
+      await handleApply(file.path, "accept");
+    }
+  }, [status, handleApply]);
+
+  const handleRejectAll = useCallback(async () => {
+    if (!status) return;
+    for (const file of status.files) {
+      await handleApply(file.path, "reject");
+    }
+  }, [status, handleApply]);
 
   const loadDiff = useCallback(
     async (path: string) => {
@@ -330,6 +370,24 @@ export function RightPanel({
               </button>
             </p>
           )}
+          {status && status.files.length > 0 && (
+            <div className="workspace-batch-actions">
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={handleAcceptAll}
+              >
+                全部接受（{status.files.length}）
+              </button>
+              <button
+                type="button"
+                className="button button--ghost"
+                onClick={handleRejectAll}
+              >
+                全部拒绝（{status.files.length}）
+              </button>
+            </div>
+          )}
           <ul className="workspace-files">
             {(status?.files ?? []).map((file: WorkspaceFileEntry) => (
               <li key={file.path}>
@@ -355,6 +413,24 @@ export function RightPanel({
                     onClick={() => toggleReviewed(file.path)}
                   >
                     {reviewed.includes(file.path) ? "✓" : "○"}
+                  </button>
+                  <button
+                    type="button"
+                    className="workspace-file__action workspace-file__accept"
+                    title="接受此变更"
+                    onClick={() => void handleApply(file.path, "accept")}
+                    disabled={!!applying[file.path]}
+                  >
+                    {applying[file.path] === "accept" ? "✓" : "✓ 接受"}
+                  </button>
+                  <button
+                    type="button"
+                    className="workspace-file__action workspace-file__reject"
+                    title="拒绝此变更"
+                    onClick={() => void handleApply(file.path, "reject")}
+                    disabled={!!applying[file.path]}
+                  >
+                    {applying[file.path] === "reject" ? "✗" : "✗ 拒绝"}
                   </button>
                 </div>
               </li>

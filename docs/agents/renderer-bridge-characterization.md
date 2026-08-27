@@ -44,7 +44,9 @@ local Host protocol or dedicated Rust request helpers:
 | `interaction.respond` | session, interaction id, value | answers a pending interaction |
 | `agent.command` | session + closed nested command object | only separately allowlisted Runtime command types |
 | `workspace.status` | `{ requestId, type }` | bounded changed-file list or `WORKSPACE_*` code |
-| `workspace.diff` | `path` (project-relative) | bounded diff result or stable validation code |
+| `workspace.diff`
+| `workspace.apply` | `path`, `action` | `{ ok, error }` | 接受或回滚工作区变更
+| `workspace.apply` | `path` (project-relative) | bounded diff result or stable validation code |
 | `events.replay` | `sessionId`, `afterSeq` | journaled timeline events after `afterSeq`; `dropped=true` requires message re-hydration |
 | `approval.rules.list` | `sessionId` | `{ session, project }` grant lists for the routed session |
 | `approval.rules.add` | `sessionId`, `tool`, `scope`, `sourceInteractionId` | grant outcome; tool charset/scope validated, duplicates return `created:false` |
