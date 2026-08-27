@@ -1,0 +1,106 @@
+---
+purpose: Project rules for AI agents
+updated: 2026-08-22
+source: generated-by-zcode-starterkit
+---
+
+# AGENTS.md
+
+## Purpose
+
+Tauri 2 desktop shell for `omp` (oh-my-pi): a Rust backend spawns a verified `omp --mode rpc` runtime per tab, a Bun/TypeScript host (`apps/desktop-host`) wraps it behind a local frame protocol, and a bundler-free React frontend (vendored libs, in-browser Babel) renders chat sessions. Agents optimize for a working offline desktop app with small, tested diffs.
+
+## Source of Truth
+
+1. `CLAUDE.md` — authoritative repo rules: architecture, frontend load order, IIFE rule, god-file caps, gotchas, code style, test policy, changelog/release workflow. Read it before editing anything.
+2. This `AGENTS.md` — coding standards and synthesis notes layered under `CLAUDE.md`.
+3. `.zcode/memory/project/tech-stack.md` and `.zcode/memory/project/project.md`
+4. Code and tests
+5. Baseline / external catalogs only when they match this repo's stack
+
+## Stack Snapshot
+
+- **Rust 2021 + Tauri 2** (`src-tauri/`) — process supervision (`agent/`, `process_supervisor.rs`, `host.rs`), git watcher, IPC commands. cargo 1.98, `Cargo.lock` committed.
+- **Frontend** (`src/`) — plain JS/JSX, no bundler. Vendored React UMD + `@babel/standalone` transpile in-browser. Script order in `src/index.html` is the dependency graph.
+- **Host runtime** (`apps/desktop-host/`) — Bun + TypeScript ESM, `@oh-my-pi/pi-*` 17.4.1 vendored runtime, `bun test` suite, compiles to `artifacts/omp-desktop-host.exe`.
+- **Toolchain** — Node 25 / npm 11 (root, only `@tauri-apps/cli`), Bun 1.4 (`apps/desktop-host`), cargo at `~/.cargo/bin` (add to PATH in fresh shells).
+- **Detected shape** — desktop app mono-repo: Tauri shell + embedded host runtime + vendored-React UI.
+
+## Core Coding Contract
+
+- Read repo instructions (`CLAUDE.md` first), docs, configs, and nearby code before editing.
+- Prefer existing patterns and the smallest correct diff; surgical edits over full-file rewrites.
+- Preserve public APIs, data shapes, and external side effects only when they are part of the current requirements — do **not** add backward-compatibility layers, migrations, or fallbacks for obsolete behavior. Delete obsolete code directly.
+- Choose the simplest implementation that satisfies the current requirements; no speculative abstractions or config layers. Make a minimal end-to-end version work before adding complexity; never dismantle working code for unfinished complexity.
+- Keep components modular with separated concerns; prefer mature, actively maintained libraries; inspect what existing dependencies (`@oh-my-pi/pi-*`, tauri plugins) already do before adding packages or writing custom code.
+- Decide for the long term — no "replace it later" temporary solutions. Study how mature products solve the same problem before inventing.
+- Do not add dependencies, frameworks, broad refactors, or generated churn unless the task requires them.
+- Run the repo's actual formatter/linter/test commands after meaningful changes (see Verified Commands).
+- Self-review the diff, including untracked files, and remove debug leftovers before completion.
+- Report skipped verification with reasons instead of claiming unverified success.
+
+## Coding Standards (apply strictly)
+
+- **Source:** agent-skills-standard pinned snapshot (https://github.com/HoangNguyen0403/agent-skills-standard, commit `9f695e8e2c3e423dfcd420a0e6b80e0e99044088`, snapshot 2026-08-01, Apache-2.0) — bundled offline fallback; wiki was skipped (no link provided). Re-run `/setup` with a wiki link to upgrade.
+- **JS (`src/`):** `const` by default, strict `===`, template literals, guard clauses/early returns, functions <30 lines, no empty catches, throw `new Error()` with descriptive messages — never strings. Comments explain *why*, not *what*.
+- **TS (`apps/desktop-host/`):** explicit types on public API params/returns, infer locals, no `any` (use `unknown` + narrowing), no non-null `!`, literal unions / `as const` over runtime `enum`, named exports only, `import type` for type-only imports, async/await with typed `catch (e: unknown)` narrowed before use.
+- **IPC boundary:** validate/sanitize every payload crossing Rust↔JS or host↔runtime boundaries; strongly typed shapes; no blocking work inside async Tauri commands.
+- **Rust:** no bundled standards pack exists for Rust in the snapshot — `CLAUDE.md`'s Rust rules govern (nightly clippy pedantic+nursery `-D warnings` clean, no `unwrap`/`expect` in production paths, borrow over own, no `.clone()` to bypass borrowck).
+- **Reviews / findings:** substance over style; every finding carries file + evidence and severity (`[BLOCKER]`/`[MAJOR]`/`[NIT]`); include test-coverage and edge-case coverage even when CI is green.
+
+## Selected Guideline Packs
+
+- **Strong matches:** `common/common-best-practices`, `common/common-code-review`, `javascript/javascript-language`, `javascript/javascript-best-practices`, `typescript/typescript-language`, `typescript/typescript-best-practices`
+- **Medium matches:** `javascript/javascript-tooling` — only its "respect existing tooling, no formatting wars" rule applies; this repo deliberately has no ESLint/Jest pipeline for `src/` (do not introduce one unprompted).
+- **Ignored packs:** `common/common-context-optimization` (agent-behavior guidance, not a repo coding rule); `typescript/typescript-security` (no auth/secrets surface in the host); `common/common-accessibility` (no framework UI surface beyond what CLAUDE.md already covers).
+- **No exact bundled pack** for Rust/Tauri — repo-local rules in `CLAUDE.md` fill that gap.
+
+## Repo-Specific Rules
+
+1. `omp` RPC contract: spawn `omp --mode rpc`, never `omp --rpc` (falls through to TUI and floods stdout with ANSI). Thinking levels are RPC-driven; valid values `off|minimal|low|medium|high|xhigh` — never invent fallbacks like `auto`/`extended`.
+2. Vendor boundary: `@oh-my-pi/*` imports are allowed **only** inside `apps/desktop-host/src/omp-vendor.ts` (enforced by `tests/vendor-boundary.test.ts`). All other modules import from `omp-vendor.ts`.
+3. Frontend has no resolver: script order in `src/index.html` **is** the dependency graph — insert new files at the correct point, never append. Every plain (non-Babel) script declaring top-level `const`/`function`/`class` must be IIFE-wrapped: `(function(){ …; window.X = X; })();`.
+4. `src/design/` is the live-wired copy; root `design/` is a gitignored read-only prototype. Never regenerate `src/design/` from `design/`.
+5. Tests before commit for all non-trivial code: Rust logic gets `#[cfg(test)] mod tests` in-file; host logic gets a `bun test` file under `apps/desktop-host/tests/`. "It doesn't throw" and snapshot/"it renders" checks don't count.
+6. Every user-facing change goes into `CHANGELOG.md` `[Unreleased]` (Keep a Changelog). Release steps are scripted in `CLAUDE.md` — don't improvise.
+7. God-file soft caps (~250 lines `.jsx`/`.rs`, ~400 `.js`, ~300 `.css`): split by responsibility when hitting the 6th component or 4th unrelated concern, and update `src/index.html` order when splitting.
+
+## Boundaries / Gotchas
+
+- App must work offline: strict CSP, asset protocol disabled, `tauri-plugin-shell` deliberately removed. No CDN tags, no `convertFileSrc()` without revisiting CSP + capabilities.
+- `agent/reader.rs` distinguishes EOF from blank lines and strips CR/LF — don't revert to `reader.lines()` with a blanket `_ => break`.
+- `set_model` response must call `notify()` immediately, else the UI reverts on next `turn_start`.
+- `omp` must be on PATH (`%LOCALAPPDATA%\omp\omp.exe` on Windows) for dev; the bundled host verifies runtime hashes via `runtime-manifest.ts`.
+- Cargo is at `~/.cargo/bin` — not on PATH in fresh Git Bash shells.
+
+## Verified Commands
+
+- `npm run host:test` — 21 tests pass (bun) ✅ verified 2026-08-22
+- `cd src-tauri && cargo check --locked` — clean ✅ verified 2026-08-22
+- `cd src-tauri && cargo test --locked` — 2 passed, 0 failed ✅ verified 2026-08-22
+- `npm run dev` / `npm run build` — Tauri dev/build (GUI; not run during setup)
+- `cd src-tauri && cargo fmt` and nightly clippy command — see `CLAUDE.md` (run before commit; not run during setup)
+- `node test-rpc.mjs` — probes `omp` RPC (requires `omp` on PATH)
+
+## Code Example
+
+The vendor boundary — the only file allowed to import `@oh-my-pi/*` (`apps/desktop-host/src/omp-vendor.ts`):
+
+```ts
+export { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
+export { listSessionsReadOnly } from "@oh-my-pi/pi-coding-agent/session/session-listing";
+export type { SessionInfo } from "@oh-my-pi/pi-coding-agent/session/session-listing";
+export {
+  MAX_RPC_FRAME_BYTES,
+  MAX_RPC_REASSEMBLED_BYTES,
+  RpcFrameDecoder
+} from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
+```
+
+## Synthesis Notes
+
+- **Rule translation:** standards packs supplied the JS/TS language-level rules (const-first, strict equality, guard clauses, no-`any`, no-`!`, named exports); repo docs (`CLAUDE.md`) supplied everything architectural — script order, IIFE rule, vendor boundary, RPC contracts, test policy, caps. Where packs suggested Jest/ESLint/Vite scaffolding, the repo's deliberate lack of a bundler/lint pipeline wins — no new tooling.
+- **Source notes:**
+  - Local wiki: not loaded (`LLM Wiki: skipped (no link provided)`).
+  - External catalog: agent-skills-standard pinned snapshot, commit `9f695e8e2c3e423dfcd420a0e6b80e0e99044088` — packs listed under Selected Guideline Packs.
+- **Open questions:** none blocking. Optional next: `/review-codebase` for a deeper pass.

@@ -1,0 +1,90 @@
+<h2>你希望 OMP Desktop 的主工作台更接近哪一种？</h2>
+<p class="subtitle">先选信息架构，不选配色。重点看：打开应用后，你最先看到什么、最常做的动作在哪里。</p>
+
+<div class="cards">
+  <div class="card" data-choice="task-workbench" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:12px;background:#0d1117">
+      <div style="display:grid;grid-template-columns:24% 51% 25%;height:260px;border:1px solid #30363d;color:#c9d1d9;font-size:11px">
+        <div style="border-right:1px solid #30363d;padding:10px">
+          <strong>项目与任务</strong>
+          <div style="margin-top:12px;color:#7d8590">OMP Desktop</div>
+          <div style="margin-top:8px;padding:7px;background:#21262d;border-left:3px solid #2f81f7">修复登录问题</div>
+          <div style="padding:7px">改进文件搜索</div>
+          <div style="padding:7px">更新发布流程</div>
+        </div>
+        <div style="padding:12px;display:flex;flex-direction:column">
+          <strong>修复登录问题</strong>
+          <div style="margin-top:12px;padding:9px;background:#161b22">请检查 OAuth 回调失败的原因</div>
+          <div style="margin-top:9px;color:#8b949e">正在读取 authentication.ts</div>
+          <div style="margin-top:8px;padding:9px;border-left:2px solid #3fb950">发现回调 URL 校验不一致，准备修改 2 个文件</div>
+          <div style="margin-top:auto;border:1px solid #30363d;padding:9px;color:#8b949e">继续告诉 OMP 要做什么...</div>
+        </div>
+        <div style="border-left:1px solid #30363d;padding:10px">
+          <strong>任务上下文</strong>
+          <div style="margin-top:12px;color:#8b949e">变更 2</div>
+          <div style="padding:7px 0">auth.ts <span style="color:#3fb950">+14</span></div>
+          <div style="padding:7px 0">callback.test.ts <span style="color:#3fb950">+28</span></div>
+          <div style="margin-top:12px;color:#8b949e">审批</div>
+          <div style="margin-top:6px;padding:7px;background:#21262d">等待运行测试</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 任务工作台（推荐）</h3>
+      <p>Codex 风格。项目和任务是主轴，中间是 Agent 时间线，右侧按需展示文件、Diff、审批和运行状态。最适合长期日常使用。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="terminal-workbench" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:12px;background:#0d1117">
+      <div style="display:grid;grid-template-columns:22% 78%;height:260px;border:1px solid #30363d;color:#c9d1d9;font-size:11px">
+        <div style="border-right:1px solid #30363d;padding:10px">
+          <strong>文件</strong>
+          <div style="margin-top:12px">src/</div>
+          <div style="padding-left:10px">auth.ts</div>
+          <div style="padding-left:10px">callback.ts</div>
+          <div style="margin-top:16px"><strong>会话</strong></div>
+          <div style="margin-top:8px;padding:7px;background:#21262d">当前 Agent</div>
+        </div>
+        <div style="display:grid;grid-template-rows:58% 42%">
+          <div style="padding:12px;border-bottom:1px solid #30363d">
+            <strong>Agent 输出</strong>
+            <div style="margin-top:12px;color:#8b949e">$ rg "callback" src</div>
+            <div style="margin-top:8px;color:#3fb950">找到 6 个匹配，正在分析...</div>
+          </div>
+          <div style="padding:12px;background:#010409">
+            <strong>终端</strong>
+            <div style="margin-top:12px;color:#8b949e">PS C:\project&gt; npm test</div>
+            <div style="margin-top:7px;color:#3fb950">18 passed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 终端工作台</h3>
+      <p>OpenCode 风格。文件与终端始终可见，Agent 像更强的命令行助手。信息密度高，但对不熟悉终端的使用者更有压力。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="guided-studio" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:12px;background:#0d1117">
+      <div style="height:260px;border:1px solid #30363d;color:#c9d1d9;font-size:11px;padding:14px">
+        <div style="display:flex;justify-content:space-between"><strong>OMP 智能开发台</strong><span>当前项目：OMP Desktop</span></div>
+        <div style="margin-top:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <div style="padding:14px;background:#161b22;border:1px solid #30363d"><strong>实现功能</strong><div style="margin-top:8px;color:#8b949e">从需求到代码</div></div>
+          <div style="padding:14px;background:#161b22;border:1px solid #30363d"><strong>诊断问题</strong><div style="margin-top:8px;color:#8b949e">定位并修复错误</div></div>
+          <div style="padding:14px;background:#161b22;border:1px solid #30363d"><strong>代码审查</strong><div style="margin-top:8px;color:#8b949e">检查当前改动</div></div>
+        </div>
+        <div style="margin-top:16px;padding:14px;border:1px solid #30363d">描述你想完成的工作...</div>
+        <div style="margin-top:16px"><strong>最近任务</strong></div>
+        <div style="margin-top:8px;padding:10px;background:#161b22">修复登录问题 · 已完成</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · 引导式智能体工作室</h3>
+      <p>ZCode 风格。用功能入口和模板降低门槛，第一眼更友好；但容易变成卡片首页，专业用户完成连续任务时步骤更多。</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:18px">可以点击一个方案。若你想组合，例如“A 为主体，但保留 B 的终端”，直接在对话里说明。</p>

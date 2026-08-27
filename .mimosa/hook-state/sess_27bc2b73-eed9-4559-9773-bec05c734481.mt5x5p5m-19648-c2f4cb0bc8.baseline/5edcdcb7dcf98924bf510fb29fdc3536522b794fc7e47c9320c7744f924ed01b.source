@@ -1,0 +1,27 @@
+import type { HarnessState } from "./harness-contracts";
+import type { MemoryProposalPreview, ProposalPolicyCode } from "./proposal-contracts";
+
+export type MutationApproval = Readonly<{ approvedBy: string; reason: string }>;
+export type ApplyRequest = Readonly<{ preview: MemoryProposalPreview; approval: MutationApproval }>;
+
+export type MutationErrorCode =
+  | "APPLY_APPROVAL_REQUIRED"
+  | "APPLY_GLOBAL_SCOPE_UNSUPPORTED"
+  | "APPLY_PREVIEW_DIGEST_MISMATCH"
+  | "APPLY_PREVIEW_FORGED"
+  | "APPLY_POLICY_REJECTED"
+  | "APPLY_STALE_TARGET"
+  | "APPLY_TARGET_MISSING"
+  | "APPLY_REPLAY_COLLISION"
+  | "APPLY_STATE_INCOMPATIBLE"
+  | "APPLY_WRITE_FAILED"
+  | "ROLLBACK_NO_SNAPSHOT"
+  | "ROLLBACK_SNAPSHOT_CORRUPT"
+  | "ROLLBACK_FAILED";
+
+export type ApplyOutcome =
+  | Readonly<{ status: "applied" | "already-applied"; proposalId: string; snapshotId: string; state: HarnessState }>
+  | Readonly<{ status: "rejected"; code: MutationErrorCode; detail?: readonly ProposalPolicyCode[] }>;
+export type RollbackOutcome =
+  | Readonly<{ status: "rolled-back"; snapshotId: string; state: HarnessState }>
+  | Readonly<{ status: "rejected"; code: "ROLLBACK_NO_SNAPSHOT" | "ROLLBACK_SNAPSHOT_CORRUPT" | "ROLLBACK_FAILED" }>;

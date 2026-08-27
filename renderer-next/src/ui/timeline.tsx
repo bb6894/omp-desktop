@@ -23,6 +23,11 @@ const TOOL_LABELS: Record<string, string> = {
   todo_write: "更新计划",
   webfetch: "抓取网页"
 };
+function formatTime(isoString: string): string {
+  const d = new Date(isoString);
+  return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+}
+
 function EntryBubble({ entry, editing, onEdit }: { entry: TimelineEntry; editing?: { id: string; text: string }; onEdit?: (action: "start" | "update" | "cancel" | "submit", entryId?: string, text?: string) => void }) {
   if (entry.kind === "user") {
     const isEditing = editing?.id === entry.id;
@@ -39,6 +44,9 @@ function EntryBubble({ entry, editing, onEdit }: { entry: TimelineEntry; editing
             />
           ) : (
             <p className="tl-text">{entry.text}</p>
+          )}
+          {"createdAt" in entry && (
+            <span className="tl-time">{formatTime(entry.createdAt)}</span>
           )}
         </div>
         {!isEditing && (
@@ -72,6 +80,7 @@ function EntryBubble({ entry, editing, onEdit }: { entry: TimelineEntry; editing
           {entry.text}
           {entry.streaming && <span className="tl-cursor">▍</span>}
         </p>
+        <span className="tl-time">{formatTime(entry.createdAt)}</span>
       </div>
     );
   }

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'apps/desktop-host/**'
+      - 'src-tauri/**'
+      - 'src/**'
+      - 'tools/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'bun.lock'
+      - 'apps/desktop-host/bun.lock'
+      - '.node-version'
+      - '.bun-version'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify:
+    name: verify · windows-x64
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.0'
+
+      - uses: dtolnay/rust-toolchain@1.98.0
+        with:
+          components: rustfmt
+          targets: x86_64-pc-windows-msvc
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Tauri dependencies
+        run: npm ci
+
+      - name: Install Host dependencies
+        run: bun install --cwd apps/desktop-host --frozen-lockfile
+
+      - name: Verify
+        run: npm run verify

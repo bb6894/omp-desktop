@@ -1,0 +1,45 @@
+<h2>一项任务的完整生命周期</h2>
+<p class="subtitle">任务是可恢复、可审查的工作记录，不是一次临时聊天。下面六步构成第一轮产品重置的主流程。</p>
+
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+  <div style="padding:16px;border:1px solid #d8ddd7;background:#fff">
+    <div class="label">01 · 建立任务</div>
+    <h3 style="margin-top:7px">选择项目，说明目标</h3>
+    <p>输入任务目标，可附加文件或图片；模型、思考等级和权限模式在输入框附近清楚可见。</p>
+  </div>
+  <div style="padding:16px;border:1px solid #d8ddd7;background:#fff">
+    <div class="label">02 · OMP 执行</div>
+    <h3 style="margin-top:7px">进度进入时间线</h3>
+    <p>读取、搜索、命令和子任务以紧凑事件呈现；默认显示摘要，需要时再展开原始输出。</p>
+  </div>
+  <div style="padding:16px;border:1px solid #e1b79f;background:#fff8f4">
+    <div class="label">03 · 等待你处理</div>
+    <h3 style="margin-top:7px">审批就在发生处</h3>
+    <p>权限请求和 Agent 提问以内联卡片出现；任务列表同步标记“等待你处理”，不会静默批准。</p>
+  </div>
+  <div style="padding:16px;border:1px solid #d8ddd7;background:#fff">
+    <div class="label">04 · 审查改动</div>
+    <h3 style="margin-top:7px">右侧打开 Changes</h3>
+    <p>先看文件清单和增删统计，再进入逐文件 Diff；可以引用某一行继续要求 OMP 修改。</p>
+  </div>
+  <div style="padding:16px;border:1px solid #b6d7cd;background:#f5fbf8">
+    <div class="label">05 · 验证结果</div>
+    <h3 style="margin-top:7px">测试与诊断归档</h3>
+    <p>测试命令、通过/失败摘要和错误定位留在任务中；失败时可直接继续对话修复。</p>
+  </div>
+  <div style="padding:16px;border:1px solid #b6d7cd;background:#f5fbf8">
+    <div class="label">06 · 完成或继续</div>
+    <h3 style="margin-top:7px">任务可恢复、可重开</h3>
+    <p>完成后保留摘要、变更和验证证据；重新打开时恢复上下文，也可以从终端只读历史安全分支。</p>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <h3>贯穿全程的规则</h3>
+  <ul>
+    <li>中途关闭窗口或切换任务，不丢失时间线和执行状态。</li>
+    <li>用户始终能停止当前运行；停止不等于删除任务。</li>
+    <li>任务状态只有：进行中、等待你处理、失败、已完成，不暴露内部协议状态。</li>
+    <li>Harness 记忆不参与第一轮主流程，后续只作为可解释的高级上下文能力接入。</li>
+  </ul>
+</div>

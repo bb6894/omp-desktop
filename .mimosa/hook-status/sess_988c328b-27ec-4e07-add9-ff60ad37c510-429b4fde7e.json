@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-24T02:39:34.180Z",
+  "sessionId": "sess_988c328b-27ec-4e07-add9-ff60ad37c510",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "C:\\Users\\yyds\\.zcode\\cli\\memories\\projects\\omp-desktop-7b585441bc51c468\\memory\\stage3c-human-governed-apply-status.md",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 5,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

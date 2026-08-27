@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-22T08:09:17.665Z",
+  "sessionId": "sess_44c4f7c3-9360-4446-957b-b27c66c8d234",
+  "event": "PostToolUse",
+  "toolName": "Write",
+  "file": "C:\\Users\\yyds\\Documents\\ChatGPT\\OMP桌面应用打造计划个人用。\\.zcode\\memory\\project\\tech-stack.md",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 5,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

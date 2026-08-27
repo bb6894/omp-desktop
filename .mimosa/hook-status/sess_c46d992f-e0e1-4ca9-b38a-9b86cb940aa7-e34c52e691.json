@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-24T08:20:29.584Z",
+  "sessionId": "sess_c46d992f-e0e1-4ca9-b38a-9b86cb940aa7",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "C:\\Users\\yyds\\.zcode\\cli\\memories\\projects\\omp-desktop-7b585441bc51c468\\memory\\product-reset-plan1-status.md",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 4,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

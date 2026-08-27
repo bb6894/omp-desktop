@@ -30,6 +30,7 @@ import type {
 import { Composer } from "./ui/composer";
 import { ErrorBoundary } from "./ui/error-boundary";
 import { SettingsPage } from "./ui/settings-page";
+import { WelcomePage } from "./ui/welcome-page";
 import { CommandPalette } from "./ui/command-palette";
 
 /** One-line human summary of a slash-command response payload. */
@@ -520,6 +521,19 @@ function Workbench({ transport }: { transport: Transport }) {
   }, [bridge, cancelRailMode, handoffInput, railModeSessionId, refresh, applySelection]);
 
 
+  // Callback for WelcomePage when no session is selected
+  const sendPromptForWelcome = useCallback(async (message: string) => {
+    if (!selectedId) return;
+    const route = routes.current.get(selectedId);
+    if (!route) return;
+    try {
+      await bridge.sendPrompt(route, message);
+      await refresh();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : String(error));
+    }
+  }, [bridge, refresh, selectedId]);
+
   const selected = useMemo(
     () => views?.find((view) => view.id === selectedId) ?? null,
     [views, selectedId]
@@ -747,23 +761,7 @@ function Workbench({ transport }: { transport: Transport }) {
               )}
             </>
           ) : (
-            <div className="center-empty">
-              <div className="center-empty__inner">
-                <span className="center-empty__kicker">OMP 工作台</span>
-                <h1 className="center-empty__title">从一个会话开始</h1>
-                <p className="center-empty__hint">选择左侧会话，或创建一个新的桌面副本来开始工作。</p>
-                <div className="center-empty__actions">
-                  <button
-                    type="button"
-                    className="button button--primary"
-                    disabled={transport !== "tauri"}
-                    onClick={() => void beginNewSession()}
-                  >
-                    + 新建会话
-                  </button>
-                </div>
-              </div>
-            </div>
+            <WelcomePage onSendMessage={sendPromptForWelcome} />
           )}
           {notice !== null && (
             <p className="center-session__notice" role="alert">

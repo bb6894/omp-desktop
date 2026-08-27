@@ -1,0 +1,222 @@
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: OMP
+        - generic [ref=e9]: ·
+        - generic [ref=e10]: OMP Desktop
+      - generic [ref=e11]:
+        - button "打开命令面板（bridge，Ctrl+K）" [ref=e12] [cursor=pointer]:
+          - text: 命令面板
+          - generic [ref=e17]: ^K
+        - generic [ref=e18]:
+          - button "最小化" [ref=e19] [cursor=pointer]: –
+          - button "最大化或还原" [ref=e20] [cursor=pointer]: □
+          - button "关闭" [ref=e21] [cursor=pointer]: ✕
+    - generic [ref=e22]:
+      - button "打开项目" [ref=e23] [cursor=pointer]
+      - generic [ref=e29]: v0.4.7-aurora
+    - generic [ref=e31]:
+      - main [ref=e32]:
+        - generic [ref=e36]:
+          - generic [ref=e37]:
+            - button "附带图片" [ref=e38] [cursor=pointer]
+            - button "语音输入" [ref=e45] [cursor=pointer]
+            - textbox "输入 / 唤出命令 · ⌘K 打开命令面板" [ref=e52]
+            - button "打开命令面板" [ref=e53] [cursor=pointer]:
+              - generic [ref=e58]: K
+            - button "发送" [disabled] [ref=e59] [cursor=pointer]
+          - generic [ref=e64]:
+            - button "切换模型" [ref=e65] [cursor=pointer]:
+              - generic [ref=e67]: –
+            - button "切换思考强度" [ref=e72] [cursor=pointer]:
+              - generic [ref=e78]: 思考 ·
+            - button "切换计划模式" [ref=e79] [cursor=pointer]:
+              - generic [ref=e86]: 计划模式
+            - text: ↵ 发送 · ⇧↵ 换行 · ⎋ 中止
+        - generic [ref=e87]:
+          - generic "与 omp 运行时的连接状态" [ref=e88]: 已连接
+          - generic [ref=e90]: ·
+          - button "切换模型" [ref=e91] [cursor=pointer]:
+            - generic [ref=e92]: –
+          - generic [ref=e97]: ·
+          - generic "thinking 思考强度：off | minimal | low | medium | high | xhigh（在输入框下方切换）" [ref=e98]: 思考 —
+          - generic [ref=e104]: ·
+          - generic "上下文窗口用量" [ref=e105]:
+            - generic [ref=e106]: 0 / 200k
+            - generic [ref=e108]: 0.0%
+          - generic [ref=e109]: ·
+          - generic "本次会话累计成本" [ref=e110]:
+            - generic [ref=e111]: 成本
+            - text: $0.00
+          - generic [ref=e112]: ·
+          - generic "throughput 吞吐量（tokens / 秒）" [ref=e113]:
+            - generic [ref=e114]: "0"
+            - text: t/s
+          - button "待办任务" [ref=e115] [cursor=pointer]:
+            - generic [ref=e122]: 待办 0/0
+          - generic [ref=e123]: ·
+          - button "切换自动保存" [ref=e124] [cursor=pointer]:
+            - generic [ref=e125]: 自动保存 开
+          - generic [ref=e126]: ·
+          - button "打开调校面板" [ref=e127] [cursor=pointer]
+      - complementary [ref=e133]:
+        - generic [ref=e134]:
+          - generic "ambient 氛围栏：令牌用量、活动雷达、并行会话与会话缩略图" [ref=e135]: 氛围栏
+          - button "隐藏侧栏" [ref=e136] [cursor=pointer]
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - img [ref=e143]:
+              - generic [ref=e146]: 0.0%
+            - generic [ref=e147]:
+              - generic [ref=e148]: 0 / 200k
+              - generic [ref=e149]: 成本 $0.00 · 0 t/s
+          - generic [ref=e153]:
+            - generic "throughput — 每秒输出 token 数" [ref=e154]: 吞吐量
+            - generic [ref=e155]: 0 t/s
+        - generic [ref=e156]:
+          - generic [ref=e157]:
+            - generic "agent radar — 最近 60 秒工具调用分布" [ref=e164]: 活动雷达
+            - generic [ref=e165]: 最近 60 秒
+          - generic [ref=e228]:
+            - generic [ref=e229]: −60 秒
+            - generic "throughput — 每秒输出 token 数" [ref=e230]: 0 t/s
+            - generic [ref=e231]: 现在
+          - generic [ref=e232]:
+            - generic "read — 读取文件" [ref=e233]: read
+            - generic "find — 搜索代码库" [ref=e235]: find
+            - generic "edit — 编辑文件（diff）" [ref=e237]: edit
+            - generic "bash — 执行命令" [ref=e239]: bash
+        - generic [ref=e241]:
+          - generic [ref=e242]:
+            - generic "peer session — 分屏布局中另一个代理的会话" [ref=e247]: 并行会话
+            - generic "split 分屏视图" [ref=e248]: 分屏
+          - generic [ref=e249]:
+            - generic [ref=e250]:
+              - generic [ref=e252]: —
+              - generic [ref=e253]: 0t/s
+            - generic [ref=e254]: 暂无并行会话
+            - generic [ref=e255]: edit · 空闲
+            - generic [ref=e261]:
+              - generic "todo — 并行会话的待办进度" [ref=e262]: 待办 0/1
+              - button "聚焦 →" [ref=e264] [cursor=pointer]
+        - generic [ref=e265]:
+          - generic "minimap 会话缩略图：每格一条消息，点击跳转" [ref=e272]: 缩略图
+          - generic "minimap 会话缩略图：每格一条消息，点击跳转；亮度对应 token 消耗" [ref=e274]:
+            - generic [ref=e280]: 会话
+            - generic [ref=e281]: "0"
+  - dialog [ref=e396]:
+    - banner [ref=e397]:
+      - generic [ref=e398]:
+        - generic [ref=e399]: Stage 2 · Read-only
+        - heading "Harness 检查器" [level=2] [ref=e400]
+        - paragraph [ref=e401]: 查看当前项目的持久目标、记忆、技能和改进记录。此界面不会创建文件、启动 Agent 或激活任何条目。
+      - generic [ref=e402]:
+        - button "刷新" [ref=e403] [cursor=pointer]
+        - button "关闭 Harness 检查器" [ref=e404] [cursor=pointer]: ×
+    - generic [ref=e405]:
+      - generic [ref=e409]:
+        - generic [ref=e410]:
+          - generic [ref=e411]: 项目
+          - strong [ref=e412]: C:\Users\yyds\Documents\ChatGPT\OMP桌面应用打造计划个人用。\omp-desktop
+        - generic [ref=e413]:
+          - generic [ref=e414]: Schema
+          - strong [ref=e415]: v1
+        - generic [ref=e416]:
+          - generic [ref=e417]: OMP Runtime
+          - strong [ref=e418]: 17.4.1
+        - generic [ref=e419]:
+          - generic [ref=e420]: Host 协议
+          - strong [ref=e421]: v1
+        - generic [ref=e422]:
+          - generic [ref=e423]: 条目总数
+          - strong [ref=e424]: "7"
+      - generic [ref=e425]:
+        - generic [ref=e426]:
+          - generic [ref=e427]: 目标
+          - strong [ref=e428]: "2"
+        - generic [ref=e429]:
+          - generic [ref=e430]: 记忆
+          - strong [ref=e431]: "1"
+        - generic [ref=e432]:
+          - generic [ref=e433]: 技能
+          - strong [ref=e434]: "0"
+        - generic [ref=e435]:
+          - generic [ref=e436]: 代理配置
+          - strong [ref=e437]: "1"
+        - generic [ref=e438]:
+          - generic [ref=e439]: 改进提议
+          - strong [ref=e440]: "1"
+        - generic [ref=e441]:
+          - generic [ref=e442]: 改进记录
+          - strong [ref=e443]: "1"
+        - generic [ref=e444]:
+          - generic [ref=e445]: 快照
+          - strong [ref=e446]: "1"
+      - generic [ref=e447]:
+        - generic [ref=e448]:
+          - generic [ref=e449]:
+            - generic [ref=e450]: 目标
+            - generic [ref=e451]: "2"
+          - generic [ref=e452]:
+            - article [ref=e453]:
+              - generic [ref=e454]:
+                - strong [ref=e455]: <img src=x onerror=alert(1)> 发布只读检查器
+                - generic [ref=e456]: active
+              - generic [ref=e457]: goal-1
+            - article [ref=e458]:
+              - generic [ref=e459]:
+                - strong [ref=e460]: 冻结 Host 合同
+                - generic [ref=e461]: completed
+              - generic [ref=e462]: goal-2
+        - generic [ref=e463]:
+          - generic [ref=e464]:
+            - generic [ref=e465]: 记忆
+            - generic [ref=e466]: "1"
+          - article [ref=e468]:
+            - generic [ref=e469]:
+              - strong [ref=e470]: Cargo 不在 PATH
+              - generic [ref=e471]: active
+            - generic [ref=e472]: mem-1 · project
+            - generic [ref=e473]: Git Bash 新开 shell 时需要 export PATH="$HOME/.cargo/bin:$PATH"。
+        - generic [ref=e474]:
+          - generic [ref=e475]:
+            - generic [ref=e476]: 技能
+            - generic [ref=e477]: "0"
+          - generic [ref=e478]: 暂无内容
+        - generic [ref=e479]:
+          - generic [ref=e480]:
+            - generic [ref=e481]: 代理配置
+            - generic [ref=e482]: "1"
+          - article [ref=e484]:
+            - generic [ref=e485]:
+              - strong [ref=e486]: 审阅代理
+              - generic [ref=e487]: active
+            - generic [ref=e488]: prof-1 · project · reviewer
+            - generic [ref=e489]: 只读审阅，不写文件。
+        - generic [ref=e490]:
+          - generic [ref=e491]:
+            - generic [ref=e492]: 改进提议
+            - generic [ref=e493]: "1"
+          - article [ref=e495]:
+            - generic [ref=e496]:
+              - strong [ref=e497]: 记住 Windows 下进程树监督方式
+              - generic [ref=e498]: proposed
+            - generic [ref=e499]: prop-1
+            - generic [ref=e500]: Windows 下用 Job Object 监督子进程树。
+        - generic [ref=e501]:
+          - generic [ref=e502]:
+            - generic [ref=e503]: 改进记录
+            - generic [ref=e504]: "1"
+          - article [ref=e506]:
+            - generic [ref=e507]:
+              - strong [ref=e508]: 证据不足
+              - generic [ref=e509]: rejected
+            - generic [ref=e510]: ref-1
+        - generic [ref=e511]:
+          - generic [ref=e512]:
+            - generic [ref=e513]: 快照
+            - generic [ref=e514]: "1"
+          - article [ref=e516]:
+            - strong [ref=e518]: 初始快照
+            - generic [ref=e519]: snap-1

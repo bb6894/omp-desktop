@@ -16,8 +16,8 @@ import {
 export type ToolStatus = "running" | "ok" | "error";
 
 export type TimelineEntry =
-  | { kind: "user"; id: string; text: string }
-  | { kind: "assistant"; id: string; text: string; streaming: boolean }
+  | { kind: "user"; id: string; text: string; createdAt: string }
+  | { kind: "assistant"; id: string; text: string; streaming: boolean; createdAt: string }
   | {
       kind: "tool";
       id: string;
@@ -169,10 +169,11 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         return { ...based, lastSeq: event.seq, unrecognized: based.unrecognized + 1 };
       }
       const text = typeof event.text === "string" ? event.text : "";
+      const createdAt = new Date().toISOString();
       const entry: TimelineEntry =
         role === "user"
-          ? { kind: "user", id: entryIdOf(event, event.seq), text }
-          : { kind: "assistant", id: entryIdOf(event, event.seq), text, streaming: true };
+          ? { kind: "user", id: entryIdOf(event, event.seq), text, createdAt }
+          : { kind: "assistant", id: entryIdOf(event, event.seq), text, streaming: true, createdAt };
       return { ...based, lastSeq: event.seq, entries: replaceOrAppend(based.entries, entry) };
     }
 
@@ -183,11 +184,13 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
 
     case "message.finalized": {
       const text = typeof event.text === "string" ? event.text : "";
+      const createdAt = new Date().toISOString();
       const finalized: TimelineEntry = {
         kind: "assistant",
         id: entryIdOf(event, event.seq),
         text,
-        streaming: false
+        streaming: false,
+        createdAt
       };
       const last = based.entries[based.entries.length - 1];
       const entries =
@@ -389,8 +392,8 @@ export function timelineFromMessages(page: {
     if (text.length === 0 && role === "assistant") continue;
     const entry: TimelineEntry =
       role === "user"
-        ? { kind: "user", id, text }
-        : { kind: "assistant", id, text, streaming: false };
+        ? { kind: "user", id, text, createdAt: new Date().toISOString() }
+        : { kind: "assistant", id, text, streaming: false, createdAt: new Date().toISOString() };
     model = { ...model, entries: [...model.entries, entry] };
   }
   return model;
@@ -425,8 +428,8 @@ export function mergeMessagePage(
     if (!hasId && text.length === 0) continue;
     prepend.push(
       role === "user"
-        ? { kind: "user", id, text }
-        : { kind: "assistant", id, text, streaming: false }
+        ? { kind: "user", id, text, createdAt: new Date().toISOString() }
+        : { kind: "assistant", id, text, streaming: false, createdAt: new Date().toISOString() }
     );
   }
   return { ...live, entries: [...prepend, ...live.entries], desynced: false };

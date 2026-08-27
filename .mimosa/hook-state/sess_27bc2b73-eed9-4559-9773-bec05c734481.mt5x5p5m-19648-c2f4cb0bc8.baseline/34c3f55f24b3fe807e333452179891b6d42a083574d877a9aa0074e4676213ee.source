@@ -1,0 +1,73 @@
+import { mkdir, open, readdir, rename, unlink } from "node:fs/promises";
+import type { FileHandle } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+
+let temporaryFileCounter = 0;
+export async function writeFileAtomic(filePath: string, bytes: Uint8Array): Promise<void> {
+  const temporaryPath = createTemporaryPath(filePath);
+  let handle: FileHandle | undefined;
+
+  try {
+    handle = await open(temporaryPath, "wx");
+    await writeAll(handle, bytes);
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    await rename(temporaryPath, filePath);
+  } catch (error: unknown) {
+    if (handle !== undefined) await closeQuietly(handle);
+    await unlinkQuietly(temporaryPath);
+    throw error;
+  }
+}
+async function writeAll(handle: FileHandle, bytes: Uint8Array): Promise<void> {
+  let offset = 0;
+  while (offset < bytes.byteLength) {
+    const result = await handle.write(bytes, offset, bytes.byteLength - offset, offset);
+    if (result.bytesWritten <= 0) throw new Error("HARNESS_ATOMIC_WRITE_INCOMPLETE");
+    offset += result.bytesWritten;
+  }
+}
+export async function ensureHarnessDirectories(projectDirectory: string): Promise<void> {
+  await mkdir(projectDirectory, { recursive: true });
+  await mkdir(join(projectDirectory, "snapshots"), { recursive: true });
+}
+export async function sweepOrphanTempFiles(directory: string): Promise<void> {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error: unknown) {
+    if (isMissingFile(error)) return;
+    throw error;
+  }
+
+  await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".tmp"))
+      .map((entry) => unlink(join(directory, entry.name)))
+  );
+}
+function createTemporaryPath(filePath: string): string {
+  const counter = temporaryFileCounter++;
+  return join(dirname(filePath), `${basename(filePath)}.${process.pid}-${counter}.tmp`);
+}
+async function closeQuietly(handle: FileHandle): Promise<void> {
+  try {
+    await handle.close();
+  } catch {
+    // The original write or rename error is more useful than a cleanup error.
+  }
+}
+async function unlinkQuietly(filePath: string): Promise<void> {
+  try {
+    await unlink(filePath);
+  } catch {
+    // A failed cleanup must not hide the original atomic-write failure.
+  }
+}
+function isMissingFile(error: unknown): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && error.code === "ENOENT";
+}

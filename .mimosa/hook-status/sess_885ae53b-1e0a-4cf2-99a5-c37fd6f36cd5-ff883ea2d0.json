@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-23T06:23:29.705Z",
+  "sessionId": "sess_885ae53b-1e0a-4cf2-99a5-c37fd6f36cd5",
+  "event": "PostToolUse",
+  "toolName": "Write",
+  "file": "apps/desktop-host/tests/tauri-command-surface.test.ts",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 10058,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

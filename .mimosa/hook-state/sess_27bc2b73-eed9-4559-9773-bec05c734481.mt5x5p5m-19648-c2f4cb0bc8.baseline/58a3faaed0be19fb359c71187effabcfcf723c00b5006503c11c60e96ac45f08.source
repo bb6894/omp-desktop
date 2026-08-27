@@ -1,0 +1,260 @@
+import { readFile } from "node:fs/promises";
+import { dirname } from "node:path";
+import {
+  defaultHarnessDataRoot,
+  HarnessStore,
+  resolveHarnessStorePath
+} from "./harness-store";
+import type {
+  HarnessCompatibility,
+  HarnessInspection,
+  HarnessKnowledgeEntry,
+  HarnessProposal,
+  HarnessState
+} from "./harness-contracts";
+import {
+  type ApplyOutcome,
+  type ApplyRequest,
+  type MutationApproval,
+  type RollbackOutcome
+} from "./harness-mutation-contracts";
+import { sweepOrphanTempFiles, writeFileAtomic } from "./harness-atomic-file";
+import { persistSnapshot } from "./harness-snapshot";
+import {
+  PROPOSAL_DIGEST_SCHEMA_VERSION,
+  type MemoryProposalDigestPayload,
+  type MemoryProposalInput,
+  type MemoryProposalPreview
+} from "./proposal-contracts";
+import { digestCanonicalProposal } from "./proposal-digest";
+import { evaluateMemoryProposalPolicy } from "./proposal-policy";
+const PINNED_COMPATIBILITY: HarnessCompatibility = { runtimeVersion: "17.4.1", hostProtocol: 1 };
+
+export class HarnessMutationExecutor {
+  private readonly projectPath: string;
+  private readonly dataRoot: string;
+  private readonly storePath: string;
+  private readonly projectDirectory: string;
+  private readonly verifyWrite: (projectPath: string, dataRoot: string) => Promise<HarnessInspection>;
+  constructor(
+    projectPath: string,
+    dataRoot = defaultHarnessDataRoot(),
+    verifyWrite: (projectPath: string, dataRoot: string) => Promise<HarnessInspection> = (path, root) =>
+      new HarnessStore(path, root).inspect()
+  ) {
+    this.projectPath = projectPath;
+    this.dataRoot = dataRoot;
+    this.storePath = resolveHarnessStorePath(projectPath, dataRoot);
+    this.projectDirectory = dirname(this.storePath);
+    this.verifyWrite = verifyWrite;
+  }
+  async applyMemoryProposal(request: ApplyRequest): Promise<ApplyOutcome> {
+    const approvalError = validateApproval(request?.approval);
+    if (approvalError !== null) return rejected(approvalError);
+
+    const preview = request.preview;
+    if (preview.after.scope !== "project") return rejected("APPLY_GLOBAL_SCOPE_UNSUPPORTED");
+
+    const binding = validatePreviewBinding(preview);
+    if (binding !== null) return rejected(binding);
+
+    const proposalInput = createProposalInput(preview);
+    const policy = evaluateMemoryProposalPolicy(proposalInput);
+    if (!policy.accepted) return frozen({ status: "rejected", code: "APPLY_POLICY_REJECTED", detail: policy.codes });
+
+    let currentInspection: HarnessInspection;
+    try {
+      currentInspection = await this.verifyWrite(this.projectPath, this.dataRoot);
+    } catch (error: unknown) {
+      if (isCompatibilityError(error)) return rejected("APPLY_STATE_INCOMPATIBLE");
+      throw error;
+    }
+    if (preview.projectId !== currentInspection.state.projectId) return rejected("APPLY_PREVIEW_FORGED");
+    if (!isPinnedCompatibility(currentInspection.state.compatibility)) {
+      return rejected("APPLY_STATE_INCOMPATIBLE");
+    }
+    if (!isPinnedCompatibility(preview.after.compatibility)) return rejected("APPLY_STATE_INCOMPATIBLE");
+
+    const replay = findReplay(currentInspection.state, preview.proposal);
+    if (replay === "collision") return rejected("APPLY_REPLAY_COLLISION");
+    if (replay !== null) {
+      const snapshotId = currentInspection.state.snapshots.at(-1)?.id ?? "";
+      return frozen({ status: "already-applied", proposalId: preview.proposal.id, snapshotId, state: currentInspection.state });
+    }
+    if (preview.operation === "memory.replace") {
+      const targetError = validateReplaceTarget(currentInspection.state, preview);
+      if (targetError !== null) return rejected(targetError);
+    } else if (preview.operation !== "memory.add") {
+      return rejected("APPLY_PREVIEW_FORGED");
+    }
+    const stateBytes = await this.readCurrentStateBytes(currentInspection.state);
+    let stateWriteStarted = false;
+    try {
+      await sweepOrphanTempFiles(this.projectDirectory);
+      const snapshot = await persistSnapshot(
+        this.projectDirectory,
+        stateBytes,
+        "before " + preview.operation,
+        preview.after.updatedAt
+      );
+      const nextState = createNextState(currentInspection.state, preview, request.approval, snapshot);
+      stateWriteStarted = true;
+      await writeFileAtomic(this.storePath, Buffer.from(JSON.stringify(nextState), "utf8"));
+      const verified = await this.verifyWrite(this.projectPath, this.dataRoot);
+      return frozen({ status: "applied", proposalId: preview.proposal.id, snapshotId: snapshot.id, state: verified.state });
+    } catch {
+      if (stateWriteStarted) await writeFileAtomic(this.storePath, stateBytes).catch(() => undefined);
+      return rejected("APPLY_WRITE_FAILED");
+    }
+  }
+
+  async rollbackToLatestSnapshot(_reason: string): Promise<RollbackOutcome> {
+    return { status: "rejected", code: "ROLLBACK_NO_SNAPSHOT" };
+  }
+
+  private async readCurrentStateBytes(state: HarnessState): Promise<Uint8Array> {
+    try {
+      return await readFile(this.storePath);
+    } catch (error: unknown) {
+      if (!isMissingFile(error)) throw error;
+      return Buffer.from(JSON.stringify(state), "utf8");
+    }
+  }
+}
+
+function validateApproval(approval: MutationApproval | null | undefined): "APPLY_APPROVAL_REQUIRED" | null {
+  if (approval === null || typeof approval !== "object") return "APPLY_APPROVAL_REQUIRED";
+  if (typeof approval.approvedBy !== "string" || approval.approvedBy.trim().length === 0) return "APPLY_APPROVAL_REQUIRED";
+  if (typeof approval.reason !== "string" || approval.reason.trim().length === 0) return "APPLY_APPROVAL_REQUIRED";
+  return null;
+}
+
+function validatePreviewBinding(preview: MemoryProposalPreview): "APPLY_PREVIEW_DIGEST_MISMATCH" | "APPLY_PREVIEW_FORGED" | null {
+  const payload: MemoryProposalDigestPayload = {
+    kind: "proposal",
+    schemaVersion: PROPOSAL_DIGEST_SCHEMA_VERSION,
+    payload: {
+      projectId: preview.projectId,
+      operation: preview.operation,
+      targetId: preview.proposal.targetId,
+      memory: {
+        title: preview.after.title,
+        content: preview.after.content,
+        scope: preview.after.scope,
+        compatibility: preview.after.compatibility,
+        evidence: preview.after.evidence
+      }
+    }
+  };
+  const digest = digestCanonicalProposal(payload);
+  if (digest.sha256 !== preview.digest.sha256) return "APPLY_PREVIEW_DIGEST_MISMATCH";
+  const expectedProposalId = "proposal-" + digest.sha256.slice(0, 24);
+  const expectedMemoryId = "memory-" + digest.sha256.slice(0, 24);
+  if (preview.proposal.id !== expectedProposalId) return "APPLY_PREVIEW_FORGED";
+  const expectedTargetId = preview.operation === "memory.add" ? null : preview.before?.id ?? null;
+  const expectedSummary = (preview.operation === "memory.add" ? "Add" : "Replace") + " memory: " + preview.after.title;
+  if (!preview.readOnly || preview.persisted || preview.activated || preview.applied
+    || preview.after.status !== "proposed"
+    || preview.proposal.kind !== "memory"
+    || preview.proposal.status !== "proposed"
+    || preview.proposal.targetId !== expectedTargetId
+    || preview.proposal.summary !== expectedSummary
+    || preview.proposal.proposedValue !== preview.after.content
+    || JSON.stringify(preview.proposal.evidence) !== JSON.stringify(preview.after.evidence)
+    || preview.proposal.createdAt !== preview.after.updatedAt) {
+    return "APPLY_PREVIEW_FORGED";
+  }
+  if (preview.operation === "memory.add" && preview.after.id !== expectedMemoryId) return "APPLY_PREVIEW_FORGED";
+  if (preview.operation === "memory.replace" && preview.after.id !== preview.proposal.targetId) return "APPLY_PREVIEW_FORGED";
+  return null;
+}
+
+function createProposalInput(preview: MemoryProposalPreview): MemoryProposalInput {
+  return {
+    operation: preview.operation,
+    projectId: preview.projectId,
+    compatibility: preview.after.compatibility,
+    target: preview.before,
+    title: preview.after.title,
+    content: preview.after.content,
+    scope: preview.after.scope,
+    evidence: preview.after.evidence,
+    createdAt: preview.after.updatedAt
+  };
+}
+
+function createNextState(
+  current: HarnessState,
+  preview: MemoryProposalPreview,
+  approval: MutationApproval,
+  snapshot: HarnessState["snapshots"][number]
+): HarnessState {
+  const memory: HarnessKnowledgeEntry = { ...preview.after, status: "active" };
+  const proposal: HarnessProposal = { ...preview.proposal, status: "approved" };
+  const memories = preview.operation === "memory.add"
+    ? [...current.memories, memory]
+    : current.memories.map((entry) => entry.id === memory.id ? memory : entry);
+  return {
+    ...current,
+    memories,
+    proposals: [...current.proposals, proposal],
+    refinementHistory: [...current.refinementHistory, {
+      id: "history-" + preview.digest.sha256.slice(0, 24),
+      proposalId: proposal.id,
+      outcome: "approved",
+      reason: approval.reason,
+      createdAt: preview.after.updatedAt
+    }],
+    snapshots: [...current.snapshots, snapshot]
+  };
+}
+
+function validateReplaceTarget(
+  state: HarnessState,
+  preview: MemoryProposalPreview
+): "APPLY_TARGET_MISSING" | "APPLY_STALE_TARGET" | null {
+  const targetId = preview.proposal.targetId;
+  if (targetId === null) return "APPLY_TARGET_MISSING";
+  const target = state.memories.find((entry) => entry.id === targetId);
+  if (target === undefined) return "APPLY_TARGET_MISSING";
+  if (preview.before === null || target.status !== "active" || target.updatedAt !== preview.before.updatedAt) {
+    return "APPLY_STALE_TARGET";
+  }
+  return null;
+}
+
+function findReplay(state: HarnessState, proposal: HarnessProposal): HarnessProposal | "collision" | null {
+  const existing = state.proposals.find((candidate) => candidate.id === proposal.id);
+  if (existing === undefined) return null;
+  if (existing.status !== "approved") return "collision";
+  const same = existing.kind === proposal.kind
+    && existing.targetId === proposal.targetId
+    && existing.summary === proposal.summary
+    && existing.proposedValue === proposal.proposedValue
+    && JSON.stringify(existing.evidence) === JSON.stringify(proposal.evidence);
+  return same ? existing : "collision";
+}
+
+function isPinnedCompatibility(value: HarnessCompatibility): boolean {
+  return value.runtimeVersion === PINNED_COMPATIBILITY.runtimeVersion
+    && value.hostProtocol === PINNED_COMPATIBILITY.hostProtocol;
+}
+
+function rejected(code: "APPLY_APPROVAL_REQUIRED" | "APPLY_GLOBAL_SCOPE_UNSUPPORTED" | "APPLY_PREVIEW_DIGEST_MISMATCH" | "APPLY_PREVIEW_FORGED" | "APPLY_REPLAY_COLLISION" | "APPLY_STATE_INCOMPATIBLE" | "APPLY_TARGET_MISSING" | "APPLY_STALE_TARGET" | "APPLY_WRITE_FAILED"): ApplyOutcome {
+  return Object.freeze({ status: "rejected", code });
+}
+
+function frozen<T extends ApplyOutcome>(outcome: T): T {
+  return Object.freeze(outcome);
+}
+
+function isMissingFile(error: unknown): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && error.code === "ENOENT";
+}
+
+function isCompatibilityError(error: unknown): boolean {
+  return error instanceof Error && error.message === "HARNESS_INCOMPATIBLE";
+}

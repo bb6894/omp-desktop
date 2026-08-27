@@ -1,0 +1,215 @@
+import { expect, test } from "bun:test";
+import { dirname, join } from "node:path";
+import { existsSync, mkdtempSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import type { HarnessEvidence } from "../src/harness-contracts";
+import {
+  createEmptyHarnessState,
+  HarnessStore,
+  harnessProjectId,
+  resolveHarnessStorePath
+} from "../src/harness-store";
+import { createMemoryAddPreview, createMemoryReplacePreview } from "../src/memory-proposal-preview";
+import { HarnessMutationExecutor } from "../src/harness-mutation-executor";
+import type { MutationApproval } from "../src/harness-mutation-contracts";
+
+const COMPATIBILITY = { runtimeVersion: "17.4.1", hostProtocol: 1 } as const;
+const EVIDENCE: readonly HarnessEvidence[] = [
+  { kind: "test", reference: "host:test", summary: "Host verification passed" }
+];
+
+function temporaryDirectory(prefix: string): string {
+  return mkdtempSync(join(tmpdir(), prefix));
+}
+
+function createAddPreview(project: string) {
+  return createMemoryAddPreview({
+    projectId: harnessProjectId(project),
+    compatibility: COMPATIBILITY,
+    title: "Keep approved harness changes reversible",
+    content: "Write a snapshot before applying an approved memory proposal.",
+    scope: "project",
+    evidence: EVIDENCE,
+    createdAt: "2026-08-23T00:00:00.000Z"
+  });
+}
+
+function createTarget(): import("../src/harness-contracts").HarnessKnowledgeEntry {
+  return {
+    id: "memory-existing",
+    title: "Existing memory",
+    content: "Keep the old approved rule.",
+    scope: "project",
+    status: "active",
+    evidence: EVIDENCE,
+    compatibility: COMPATIBILITY,
+    updatedAt: "2026-08-22T00:00:00.000Z"
+  };
+}
+
+function createReplacePreview(project: string, target = createTarget()) {
+  return createMemoryReplacePreview({
+    projectId: harnessProjectId(project),
+    compatibility: COMPATIBILITY,
+    target,
+    title: "Replace the approved harness rule",
+    content: "Keep the replacement rule reversible with a snapshot.",
+    scope: "project",
+    evidence: EVIDENCE,
+    createdAt: "2026-08-23T00:00:00.000Z"
+  });
+}
+
+async function writeState(project: string, dataRoot: string, state: ReturnType<typeof createEmptyHarnessState>): Promise<string> {
+  const statePath = resolveHarnessStorePath(project, dataRoot);
+  await mkdir(dirname(statePath), { recursive: true });
+  await writeFile(statePath, JSON.stringify(state), "utf8");
+  return statePath;
+}
+
+const APPROVAL: MutationApproval = {
+  approvedBy: "user",
+  reason: "Approved after reviewing the host verification evidence"
+};
+
+test("applies an approved memory.add and snapshots the empty state bytes", async () => {
+  const root = temporaryDirectory("omp-desktop-mutation-add-");
+  const project = join(root, "repo");
+  const dataRoot = join(root, "local-app-data");
+  const statePath = resolveHarnessStorePath(project, dataRoot);
+  const preview = createAddPreview(project);
+  const preApplyBytes = Buffer.from(JSON.stringify(createEmptyHarnessState(project)), "utf8");
+
+  const outcome = await new HarnessMutationExecutor(project, dataRoot).applyMemoryProposal({
+    preview,
+    approval: APPROVAL
+  });
+
+  expect(outcome.status).toBe("applied");
+  if (outcome.status !== "applied") throw new Error("expected an applied outcome");
+  expect(outcome.proposalId).toBe(preview.proposal.id);
+  expect(outcome.snapshotId).toMatch(/^snapshot-[0-9a-f]{24}$/);
+  const stateBytes = await readFile(statePath);
+  const snapshotBytes = await readFile(join(dirname(statePath), "snapshots", `${outcome.snapshotId}.json`));
+  expect(stateBytes.length).toBeGreaterThan(preApplyBytes.length);
+  expect(snapshotBytes.equals(preApplyBytes)).toBe(true);
+
+  const inspection = await new HarnessStore(project, dataRoot).inspect();
+  expect(inspection.state.memories).toHaveLength(1);
+  expect(inspection.state.memories[0]).toMatchObject({
+    id: preview.after.id,
+    status: "active",
+    title: preview.after.title,
+    content: preview.after.content
+  });
+  expect(inspection.state.proposals).toHaveLength(1);
+  expect(inspection.state.proposals[0]).toMatchObject({
+    id: preview.proposal.id,
+    status: "approved",
+    targetId: null
+  });
+  expect(inspection.state.refinementHistory).toHaveLength(1);
+  expect(inspection.state.refinementHistory[0]).toMatchObject({
+    proposalId: preview.proposal.id,
+    outcome: "approved",
+    reason: APPROVAL.reason
+  });
+  expect(inspection.state.snapshots).toHaveLength(1);
+  expect(inspection.state.snapshots[0].id).toBe(outcome.snapshotId);
+});
+
+test("replaying an approved memory.add is idempotent and does not rewrite state", async () => {
+  const root = temporaryDirectory("omp-desktop-mutation-replay-");
+  const project = join(root, "repo");
+  const dataRoot = join(root, "local-app-data");
+  const executor = new HarnessMutationExecutor(project, dataRoot);
+  const request = { preview: createAddPreview(project), approval: APPROVAL };
+
+  const first = await executor.applyMemoryProposal(request);
+  const beforeReplay = await readFile(resolveHarnessStorePath(project, dataRoot));
+  const second = await executor.applyMemoryProposal(request);
+  const afterReplay = await readFile(resolveHarnessStorePath(project, dataRoot));
+
+  expect(first.status).toBe("applied");
+  expect(second).toMatchObject({
+    status: "already-applied",
+    proposalId: request.preview.proposal.id
+  });
+  if (first.status !== "applied" || second.status !== "already-applied") {
+    throw new Error("expected applied then already-applied outcomes");
+  }
+  expect(second.snapshotId).toBe(first.snapshotId);
+  expect(afterReplay.equals(beforeReplay)).toBe(true);
+});
+
+test("applies memory.replace while preserving the target id and snapshotting the prior state", async () => {
+  const root = temporaryDirectory("omp-desktop-mutation-replace-");
+  const project = join(root, "repo");
+  const dataRoot = join(root, "local-app-data");
+  const target = createTarget();
+  const state = { ...createEmptyHarnessState(project), memories: [target] };
+  const statePath = await writeState(project, dataRoot, state);
+  const beforeBytes = await readFile(statePath);
+  const preview = createReplacePreview(project, target);
+
+  const outcome = await new HarnessMutationExecutor(project, dataRoot).applyMemoryProposal({
+    preview,
+    approval: APPROVAL
+  });
+
+  expect(outcome.status).toBe("applied");
+  if (outcome.status !== "applied") throw new Error("expected an applied outcome");
+  const snapshotBytes = await readFile(join(dirname(statePath), "snapshots", `${outcome.snapshotId}.json`));
+  expect(snapshotBytes.equals(beforeBytes)).toBe(true);
+  const inspection = await new HarnessStore(project, dataRoot).inspect();
+  expect(inspection.state.memories).toHaveLength(1);
+  expect(inspection.state.memories[0]).toMatchObject({
+    id: target.id,
+    status: "active",
+    title: preview.after.title,
+    content: preview.after.content
+  });
+});
+
+test("rejects a replace preview when its target is missing without filesystem effects", async () => {
+  const root = temporaryDirectory("omp-desktop-mutation-target-missing-");
+  const project = join(root, "repo");
+  const dataRoot = join(root, "local-app-data");
+  const statePath = await writeState(project, dataRoot, createEmptyHarnessState(project));
+  const beforeBytes = await readFile(statePath);
+  const outcome = await new HarnessMutationExecutor(project, dataRoot).applyMemoryProposal({
+    preview: createReplacePreview(project),
+    approval: APPROVAL
+  });
+
+  expect(outcome).toEqual({ status: "rejected", code: "APPLY_TARGET_MISSING" });
+  expect((await readFile(statePath)).equals(beforeBytes)).toBe(true);
+  expect(existsSync(join(dirname(statePath), "snapshots"))).toBe(false);
+});
+
+test("rejects a replace preview when the target is stale or inactive without filesystem effects", async () => {
+  const variants = [
+    { label: "updated", target: { ...createTarget(), updatedAt: "2026-08-23T01:00:00.000Z" } },
+    { label: "inactive", target: { ...createTarget(), status: "reverted" as const } }
+  ];
+
+  for (const variant of variants) {
+    const root = temporaryDirectory(`omp-desktop-mutation-target-${variant.label}-`);
+    const project = join(root, "repo");
+    const dataRoot = join(root, "local-app-data");
+    const statePath = await writeState(project, dataRoot, {
+      ...createEmptyHarnessState(project),
+      memories: [variant.target]
+    });
+    const beforeBytes = await readFile(statePath);
+    const outcome = await new HarnessMutationExecutor(project, dataRoot).applyMemoryProposal({
+      preview: createReplacePreview(project),
+      approval: APPROVAL
+    });
+
+    expect(outcome).toEqual({ status: "rejected", code: "APPLY_STALE_TARGET" });
+    expect((await readFile(statePath)).equals(beforeBytes)).toBe(true);
+    expect(existsSync(join(dirname(statePath), "snapshots"))).toBe(false);
+  }
+});

@@ -1,0 +1,96 @@
+<h2>新工作台应该呈现什么视觉气质？</h2>
+<p class="subtitle">三种方案使用相同的任务工作台结构，只比较层级、密度和品牌感。</p>
+
+<div class="cards">
+  <div class="card" data-choice="quiet-omp" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:12px;background:#eceeeb">
+      <div style="display:grid;grid-template-columns:25% 50% 25%;height:245px;border:1px solid #c8ccc6;background:#f7f8f6;color:#242824;font-size:11px">
+        <div style="padding:11px;border-right:1px solid #d9ddd7;background:#f0f2ef">
+          <div style="font-weight:700;font-size:13px">OMP</div>
+          <div style="margin-top:15px;color:#6d746c">项目</div>
+          <div style="margin-top:8px;font-weight:600">OMP Desktop</div>
+          <div style="margin-top:12px;padding:8px;background:#fff;border-left:3px solid #187b62">修复登录问题</div>
+          <div style="padding:8px;color:#59605a">改进文件搜索</div>
+        </div>
+        <div style="padding:13px;display:flex;flex-direction:column">
+          <strong style="font-size:13px">修复登录问题</strong>
+          <div style="margin-top:13px;padding:9px;background:#fff;border:1px solid #e0e3df">检查 OAuth 回调失败原因</div>
+          <div style="margin-top:10px;color:#687069">OMP 正在分析 6 个匹配...</div>
+          <div style="margin-top:auto;padding:9px;border:1px solid #c8ccc6;background:#fff">继续告诉 OMP 要做什么...</div>
+        </div>
+        <div style="padding:11px;border-left:1px solid #d9ddd7">
+          <strong>变更</strong>
+          <div style="margin-top:12px;padding:8px;background:#fff">auth.ts <span style="color:#187b62">+14</span></div>
+          <div style="margin-top:8px;color:#b3542e">1 项等待审批</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 安静专业的 OMP（推荐）</h3>
+      <p>借鉴 Codex 的克制层级，但保留 OMP 名称与自己的绿/珊瑚强调色。减少装饰卡片，强调任务、内容和操作。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="aurora-dark" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:12px;background:#070b12">
+      <div style="display:grid;grid-template-columns:25% 50% 25%;height:245px;border:1px solid #223043;background:#0b111c;color:#d7e2ef;font-size:11px">
+        <div style="padding:11px;border-right:1px solid #223043;background:#0e1624">
+          <div style="font-weight:700;color:#6ee7c7;font-size:13px">OMP</div>
+          <div style="margin-top:15px;color:#76869b">项目</div>
+          <div style="margin-top:8px;font-weight:600">OMP Desktop</div>
+          <div style="margin-top:12px;padding:8px;background:#152033;border-left:3px solid #6ee7c7">修复登录问题</div>
+          <div style="padding:8px;color:#91a0b4">改进文件搜索</div>
+        </div>
+        <div style="padding:13px;display:flex;flex-direction:column">
+          <strong style="font-size:13px">修复登录问题</strong>
+          <div style="margin-top:13px;padding:9px;background:#111a29;border:1px solid #223043">检查 OAuth 回调失败原因</div>
+          <div style="margin-top:10px;color:#8190a5">OMP 正在分析 6 个匹配...</div>
+          <div style="margin-top:auto;padding:9px;border:1px solid #34506a;background:#0e1624">继续告诉 OMP 要做什么...</div>
+        </div>
+        <div style="padding:11px;border-left:1px solid #223043">
+          <strong>变更</strong>
+          <div style="margin-top:12px;padding:8px;background:#111a29">auth.ts <span style="color:#6ee7c7">+14</span></div>
+          <div style="margin-top:8px;color:#f1a56c">1 项等待审批</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 延续 Aurora 深色</h3>
+      <p>保留当前深色科技感，只重做布局。迁移最容易，但容易继续显得像开发仪表盘，长时间阅读也更压抑。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="ide-dense" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:12px;background:#161616">
+      <div style="display:grid;grid-template-columns:22% 52% 26%;height:245px;border:1px solid #555;background:#1f1f1f;color:#eee;font-size:10px">
+        <div style="padding:9px;border-right:1px solid #444">
+          <div style="font-weight:700;color:#f0c36c">OMP WORKBENCH</div>
+          <div style="margin-top:12px;border-bottom:1px solid #444;padding-bottom:5px">PROJECTS</div>
+          <div style="margin-top:8px">▾ OMP Desktop</div>
+          <div style="padding:5px 8px;background:#383838">● 修复登录问题</div>
+          <div style="padding:5px 8px">○ 改进文件搜索</div>
+        </div>
+        <div style="display:grid;grid-template-rows:68% 32%">
+          <div style="padding:10px;border-bottom:1px solid #444">
+            <strong>AGENT TIMELINE</strong>
+            <div style="margin-top:12px;color:#aaa">&gt; rg callback src</div>
+            <div style="margin-top:7px;color:#8fd18b">6 matches found</div>
+          </div>
+          <div style="padding:9px;background:#141414"><strong>TERMINAL</strong><div style="margin-top:7px;color:#aaa">PS&gt; npm test</div></div>
+        </div>
+        <div style="padding:9px;border-left:1px solid #444">
+          <strong>CHANGES</strong>
+          <div style="margin-top:10px">M auth.ts <span style="color:#8fd18b">+14</span></div>
+          <div style="margin-top:12px"><strong>APPROVALS</strong></div>
+          <div style="margin-top:7px;color:#f0c36c">Run tests</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · 高密度 IDE 风格</h3>
+      <p>接近专业编辑器和 OpenCode，固定展示更多技术信息。效率高，但对日常阅读和非终端操作不够舒适。</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:18px">点击一个方案。所有方案都支持深浅主题；这里选择的是默认气质和信息密度。</p>

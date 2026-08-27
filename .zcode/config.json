@@ -1,0 +1,8 @@
+{
+  "instructions": [
+    ".zcode/memory/project/user.md",
+    ".zcode/memory/project/tech-stack.md",
+    ".zcode/memory/project/project.md",
+    ".zcode/context/git-context.md"
+  ]
+}

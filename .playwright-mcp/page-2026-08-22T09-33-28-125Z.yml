@@ -1,0 +1,106 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: OMP
+      - generic [ref=e9]: ·
+      - generic [ref=e10]: OMP Desktop
+    - generic [ref=e11]:
+      - button "打开命令面板（bridge，Ctrl+K）" [ref=e12] [cursor=pointer]:
+        - text: 命令面板
+        - generic [ref=e17]: ^K
+      - generic [ref=e18]:
+        - button "最小化" [ref=e19] [cursor=pointer]: –
+        - button "最大化或还原" [ref=e20] [cursor=pointer]: □
+        - button "关闭" [ref=e21] [cursor=pointer]: ✕
+  - generic [ref=e22]:
+    - button "打开项目" [ref=e23] [cursor=pointer]
+    - generic [ref=e29]: v0.4.7-aurora
+  - generic [ref=e31]:
+    - main [ref=e32]:
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - button "附带图片" [ref=e38] [cursor=pointer]
+          - button "语音输入" [ref=e45] [cursor=pointer]
+          - textbox "输入 / 唤出命令 · ⌘K 打开命令面板" [active] [ref=e52]
+          - button "打开命令面板" [ref=e53] [cursor=pointer]:
+            - generic [ref=e58]: K
+          - button "发送" [disabled] [ref=e59] [cursor=pointer]
+        - generic [ref=e64]:
+          - button "切换模型" [ref=e65] [cursor=pointer]:
+            - generic [ref=e67]: –
+          - button "切换思考强度" [ref=e72] [cursor=pointer]:
+            - generic [ref=e78]: 思考 ·
+          - button "切换计划模式" [ref=e79] [cursor=pointer]:
+            - generic [ref=e86]: 计划模式
+          - text: ↵ 发送 · ⇧↵ 换行 · ⎋ 中止
+      - generic [ref=e87]:
+        - generic "与 omp 运行时的连接状态" [ref=e88]: 已连接
+        - generic [ref=e90]: ·
+        - button "切换模型" [ref=e91] [cursor=pointer]:
+          - generic [ref=e92]: –
+        - generic [ref=e97]: ·
+        - generic "thinking 思考强度：off | minimal | low | medium | high | xhigh（在输入框下方切换）" [ref=e98]: 思考 —
+        - generic [ref=e104]: ·
+        - generic "上下文窗口用量" [ref=e105]:
+          - generic [ref=e106]: 0 / 200k
+          - generic [ref=e108]: 0.0%
+        - generic [ref=e109]: ·
+        - generic "本次会话累计成本" [ref=e110]:
+          - generic [ref=e111]: 成本
+          - text: $0.00
+        - generic [ref=e112]: ·
+        - generic "throughput 吞吐量（tokens / 秒）" [ref=e113]:
+          - generic [ref=e114]: "0"
+          - text: t/s
+        - button "待办任务" [ref=e115] [cursor=pointer]:
+          - generic [ref=e122]: 待办 0/0
+        - generic [ref=e123]: ·
+        - button "切换自动保存" [ref=e124] [cursor=pointer]:
+          - generic [ref=e125]: 自动保存 开
+        - generic [ref=e126]: ·
+        - button "打开调校面板" [ref=e127] [cursor=pointer]
+    - complementary [ref=e133]:
+      - generic [ref=e134]:
+        - generic "ambient 氛围栏：令牌用量、活动雷达、并行会话与会话缩略图" [ref=e135]: 氛围栏
+        - button "隐藏侧栏" [ref=e136] [cursor=pointer]
+      - generic [ref=e141]:
+        - generic [ref=e142]:
+          - img [ref=e143]:
+            - generic [ref=e146]: 0.0%
+          - generic [ref=e147]:
+            - generic [ref=e148]: 0 / 200k
+            - generic [ref=e149]: 成本 $0.00 · 0 t/s
+        - generic [ref=e153]:
+          - generic "throughput — 每秒输出 token 数" [ref=e154]: 吞吐量
+          - generic [ref=e155]: 0 t/s
+      - generic [ref=e156]:
+        - generic [ref=e157]:
+          - generic "agent radar — 最近 60 秒工具调用分布" [ref=e164]: 活动雷达
+          - generic [ref=e165]: 最近 60 秒
+        - generic [ref=e228]:
+          - generic [ref=e229]: −60 秒
+          - generic "throughput — 每秒输出 token 数" [ref=e230]: 0 t/s
+          - generic [ref=e231]: 现在
+        - generic [ref=e232]:
+          - generic "read — 读取文件" [ref=e233]: read
+          - generic "find — 搜索代码库" [ref=e235]: find
+          - generic "edit — 编辑文件（diff）" [ref=e237]: edit
+          - generic "bash — 执行命令" [ref=e239]: bash
+      - generic [ref=e241]:
+        - generic [ref=e242]:
+          - generic "peer session — 分屏布局中另一个代理的会话" [ref=e247]: 并行会话
+          - generic "split 分屏视图" [ref=e248]: 分屏
+        - generic [ref=e249]:
+          - generic [ref=e250]:
+            - generic [ref=e252]: —
+            - generic [ref=e253]: 0t/s
+          - generic [ref=e254]: 暂无并行会话
+          - generic [ref=e255]: edit · 空闲
+          - generic [ref=e261]:
+            - generic "todo — 并行会话的待办进度" [ref=e262]: 待办 0/1
+            - button "聚焦 →" [ref=e264] [cursor=pointer]
+      - generic [ref=e265]:
+        - generic "minimap 会话缩略图：每格一条消息，点击跳转" [ref=e272]: 缩略图
+        - generic "minimap 会话缩略图：每格一条消息，点击跳转；亮度对应 token 消耗" [ref=e274]:
+          - generic [ref=e280]: 会话
+          - generic [ref=e281]: "0"

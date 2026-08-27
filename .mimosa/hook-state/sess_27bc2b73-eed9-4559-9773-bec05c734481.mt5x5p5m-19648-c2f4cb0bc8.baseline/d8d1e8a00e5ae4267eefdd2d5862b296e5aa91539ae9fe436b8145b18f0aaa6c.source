@@ -1,0 +1,40 @@
+import { createHash } from "node:crypto";
+import { readFile, unlink } from "node:fs/promises";
+import { join } from "node:path";
+import type { HarnessSnapshot } from "./harness-contracts";
+import { ensureHarnessDirectories, writeFileAtomic } from "./harness-atomic-file";
+
+export const MAX_SNAPSHOTS_RETAINED = 8 as const;
+export async function persistSnapshot(projectDirectory: string, bytes: Uint8Array, reason: string, createdAt: string): Promise<HarnessSnapshot> {
+  await ensureHarnessDirectories(projectDirectory);
+  const stateHash = hashBytes(bytes);
+  const metadata: HarnessSnapshot = {
+    id: `snapshot-${stateHash.slice(0, 24)}`,
+    createdAt,
+    reason,
+    stateHash
+  };
+  await writeFileAtomic(resolveSnapshotPath(projectDirectory, metadata.id), bytes);
+  return metadata;
+}
+export async function loadSnapshotBytes(projectDirectory: string, snapshotId: string): Promise<Uint8Array> {
+  return readFile(resolveSnapshotPath(projectDirectory, snapshotId));
+}
+export function verifySnapshotIntegrity(snapshot: HarnessSnapshot, bytes: Uint8Array): boolean {
+  return hashBytes(bytes) === snapshot.stateHash;
+}
+export async function pruneSnapshotRing(projectDirectory: string, snapshots: readonly HarnessSnapshot[]): Promise<readonly HarnessSnapshot[]> {
+  if (snapshots.length <= MAX_SNAPSHOTS_RETAINED) return snapshots;
+
+  const removeCount = snapshots.length - MAX_SNAPSHOTS_RETAINED;
+  const removableCount = Math.min(removeCount, Math.max(0, snapshots.length - 1));
+  const removed = snapshots.slice(0, removableCount);
+  await Promise.all(removed.map((snapshot) => unlink(resolveSnapshotPath(projectDirectory, snapshot.id))));
+  return snapshots.slice(removableCount);
+}
+export function resolveSnapshotPath(projectDirectory: string, snapshotId: string): string {
+  return join(projectDirectory, "snapshots", `${snapshotId}.json`);
+}
+function hashBytes(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-23T13:54:18.835Z",
+  "sessionId": "sess_8374363d-98e1-46a8-b0a7-f6d93f0319a0",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "C:\\Users\\yyds\\.zcode\\cli\\memories\\projects\\omp-desktop-7b585441bc51c468\\memory\\stage3b-plan-status.md",
+  "outcome": "clear",
+  "coverage": "complete",
+  "findingCount": 0,
+  "durationMs": 5,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-22T09:32:21.766Z",
+  "sessionId": "sess_545dae28-477e-4f20-b497-17cf3b58fae4",
+  "event": "PostToolUse",
+  "toolName": "Write",
+  "file": "src/.zcode-shot-server.js",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 10062,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "mimosa-hook-status/v1",
+  "recordedAt": "2026-08-23T05:04:36.645Z",
+  "sessionId": "sess_4490f488-49f0-46f5-8dc7-20d0191ddbdf",
+  "event": "PostToolUse",
+  "toolName": "Edit",
+  "file": "CLAUDE.md",
+  "outcome": "inconclusive",
+  "coverage": "partial",
+  "findingCount": 0,
+  "durationMs": 5011,
+  "hostState": "hook_complete",
+  "reportHint": ".mimosa/reports/"
+}

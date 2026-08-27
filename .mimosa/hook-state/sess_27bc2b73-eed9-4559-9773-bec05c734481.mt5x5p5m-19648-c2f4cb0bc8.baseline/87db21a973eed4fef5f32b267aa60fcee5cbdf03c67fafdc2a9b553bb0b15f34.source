@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v0.2.0)'
+        required: true
+
+jobs:
+  build-windows:
+    name: build · windows-x64
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.0'
+
+      - uses: dtolnay/rust-toolchain@1.98.0
+        with:
+          components: rustfmt
+          targets: x86_64-pc-windows-msvc
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Tauri dependencies
+        run: npm ci
+
+      - name: Install Host dependencies
+        run: bun install --cwd apps/desktop-host --frozen-lockfile
+
+      - name: Fetch pinned OMP Runtime
+        run: npm run runtime:fetch
+
+      - name: Verify source and compiled Host
+        run: npm run verify
+
+      - name: Build and publish Windows release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: 'OMP Desktop ${{ env.RELEASE_TAG }}'
+          releaseBody: |
+            ## OMP Desktop ${{ env.RELEASE_TAG }}
+
+            ### Windows installation
+            - `.exe`: NSIS installer, recommended for personal use.
+            - `.msi`: secondary Windows installer.
+
+            The verified OMP Runtime 17.4.1 is bundled. A separate system `omp`
+            installation is not required for the normal production path.
+          releaseDraft: true
+          prerelease: ${{ contains(env.RELEASE_TAG, '-') }}

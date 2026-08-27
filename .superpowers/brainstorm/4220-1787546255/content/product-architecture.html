@@ -1,0 +1,56 @@
+<h2>新产品层的数据与恢复边界</h2>
+<p class="subtitle">Renderer 负责呈现和交互，不重新实现 OMP、会话持久化或进程管理。</p>
+
+<div style="display:grid;grid-template-columns:1fr;gap:12px;max-width:920px;margin:0 auto">
+  <div style="padding:16px;border:1px solid #b9c9c1;background:#f5faf7">
+    <div class="label">Vite + React + TypeScript Renderer</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">
+      <div style="padding:10px;background:#fff;border:1px solid #d8ddd7"><strong>项目 / 任务</strong><br><span style="color:#69716a">导航与筛选</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #d8ddd7"><strong>Agent 时间线</strong><br><span style="color:#69716a">消息与工具事件</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #d8ddd7"><strong>上下文面板</strong><br><span style="color:#69716a">Diff / 文件 / 输出</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #d8ddd7"><strong>审批交互</strong><br><span style="color:#69716a">提问与权限</span></div>
+    </div>
+    <p style="margin:12px 0 0;color:#59615a">只持有选中项、面板开关和草稿等界面状态；项目、任务和执行状态从受控 DTO 恢复。</p>
+  </div>
+
+  <div style="text-align:center;color:#6b736c;font-size:18px">↕ Typed Tauri commands + bounded events</div>
+
+  <div style="padding:16px;border:1px solid #c6ccd2;background:#f6f8fa">
+    <div class="label">Tauri / Rust</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">
+      <div style="padding:10px;background:#fff;border:1px solid #d8dde2"><strong>窗口与系统</strong><br><span style="color:#68717a">生命周期、文件选择</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #d8dde2"><strong>进程监管</strong><br><span style="color:#68717a">Job Object、停止与恢复</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #d8dde2"><strong>Workspace 视图</strong><br><span style="color:#68717a">有界变更清单与 Diff DTO</span></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:#6b736c;font-size:18px">↕ Existing framed Host protocol</div>
+
+  <div style="padding:16px;border:1px solid #c9c3d7;background:#faf8fc">
+    <div class="label">Desktop Host</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">
+      <div style="padding:10px;background:#fff;border:1px solid #ded9e7"><strong>Task projection</strong><br><span style="color:#70697a">Session → Task DTO</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #ded9e7"><strong>Agent Service</strong><br><span style="color:#70697a">OMP RPC 适配</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #ded9e7"><strong>Interaction</strong><br><span style="color:#70697a">提问、权限、超时</span></div>
+      <div style="padding:10px;background:#fff;border:1px solid #ded9e7"><strong>History / Fork</strong><br><span style="color:#70697a">只读来源、安全继续</span></div>
+    </div>
+    <p style="margin:12px 0 0;color:#655f6e">“任务”第一版是现有 SessionRecord 与实时 Agent 状态的产品投影，不新增第二套任务数据库。</p>
+  </div>
+
+  <div style="text-align:center;color:#6b736c;font-size:18px">↕ Official OMP APIs / RPC v2</div>
+
+  <div style="padding:16px;border:1px solid #d9c9a8;background:#fffaf0;text-align:center">
+    <strong>Pinned OMP Runtime 17.4.1</strong>
+    <div style="margin-top:6px;color:#716a5c">Provider、模型、MCP、Skills、工具执行与会话格式的事实来源</div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:22px">
+  <h3>恢复与错误规则</h3>
+  <ul>
+    <li>重启后从 Host 恢复项目、任务和运行状态；Renderer 的缓存永远不是事实来源。</li>
+    <li>Host 或 Runtime 失败时保留任务，显示固定错误、诊断入口和“重新启动任务”，不清空时间线。</li>
+    <li>审批超时、会话切换或旧响应均 fail-closed；任何错误都不回显凭据或完整环境。</li>
+    <li>第一轮右侧“终端”只展示任务命令输出，不嵌入任意交互式 shell。</li>
+  </ul>
+</div>
