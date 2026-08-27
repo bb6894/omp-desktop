@@ -431,3 +431,66 @@ export function mergeMessagePage(
   }
   return { ...live, entries: [...prepend, ...live.entries], desynced: false };
 }
+
+// Terminal tab data model
+export type TerminalEntry = {
+  id: string;
+  command: string;
+  output: string;
+  exitCode: number | null;
+  timestamp: string;
+};
+
+export type TerminalModel = {
+  entries: TerminalEntry[];
+  lastSeq: number;
+};
+
+export function emptyTerminal(): TerminalModel {
+  return { entries: [], lastSeq: 0 };
+}
+
+// Reduce terminal state from timeline events (raw protocol types)
+export function reduceTerminal(
+  based: TerminalModel,
+  event: import("../../../protocol/domain").TimelineEvent
+): TerminalModel {
+  const e = event as any;
+  if (e.kind === "tool.started" && typeof e.toolName === "string") {
+    const shellTools = ["bash", "execute_command", "shell", "run"];
+    if (!shellTools.includes(e.toolName)) return based;
+    const newEntry: TerminalEntry = {
+      id: `cmd-${e.seq}`,
+      command: "",
+      output: "",
+      exitCode: null,
+      timestamp: new Date().toISOString()
+    };
+    return { ...based, lastSeq: e.seq, entries: [...based.entries, newEntry] };
+  }
+  if (e.kind === "tool.output" && typeof e.toolCallId === "string") {
+    const entry = based.entries.find((x: TerminalEntry) => x.id === e.toolCallId);
+    if (!entry) return based;
+    const chunk = typeof e.chunk === "string" ? e.chunk : "";
+    return {
+      ...based,
+      lastSeq: e.seq,
+      entries: based.entries.map((x: TerminalEntry) =>
+        x.id === entry.id ? { ...x, output: x.output + chunk } : x
+      )
+    };
+  }
+  if (e.kind === "tool.finished" && typeof e.toolCallId === "string") {
+    const entry = based.entries.find((x: TerminalEntry) => x.id === e.toolCallId);
+    if (!entry) return based;
+    const isError = typeof e.isError === "boolean" && e.isError;
+    return {
+      ...based,
+      lastSeq: e.seq,
+      entries: based.entries.map((x: TerminalEntry) =>
+        x.id === entry.id ? { ...x, exitCode: isError ? -1 : 0 } : x
+      )
+    };
+  }
+  return based;
+}

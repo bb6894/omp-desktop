@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { SessionViewData } from "../lib/session-lifecycle";
 import { loadAppPreferences, saveAppPreferences } from "../lib/app-preferences";
 import { parseUnifiedDiff } from "../lib/diff-view";
+import { emptyTerminal, type TerminalModel } from "../lib/event-reducer";
+import { TerminalTab } from "./terminal-tab";
 import {
   useProductBridge,
   type ApprovalRuleLists,
@@ -18,7 +20,7 @@ const STATE_LABEL: Record<SessionViewData["runtimeState"], string> = {
   failed: "失败"
 };
 
-type Tab = "detail" | "changes";
+type Tab = "detail" | "changes" | "terminal";
 
 /**
  * Right context panel (Phase 7): session details tab plus the bounded
@@ -50,6 +52,7 @@ export function RightPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reviewed, setReviewed] = useState<readonly string[]>([]);
+  const [terminalModel, _setTerminalModel] = useState<TerminalModel>(emptyTerminal());
   const [applying, setApplying] = useState<Record<string, "accept" | "reject">>({});
 
   const loadChanges = useCallback(async () => {
@@ -173,6 +176,11 @@ export function RightPanel({
         </div>
         {session !== null && <span className="right-panel__session-dot" aria-label="已选择会话" />}
       </div>
+      {tab === "terminal" && (
+        <div className="right-panel__content right-panel__content--terminal">
+          <TerminalTab model={terminalModel} />
+        </div>
+      )}
       {tab === "detail" ? (
         session === null ? (
           <p className="right-panel__placeholder">从左侧选择一个会话查看详情。</p>

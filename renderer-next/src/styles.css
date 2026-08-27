@@ -1512,3 +1512,142 @@ code, pre, .tl-card__output--code, .workspace-file__code {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Terminal tab styles */
+.terminal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
+  font-size: 12px;
+}
+
+.terminal__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+}
+
+.terminal__icon {
+  color: #4ec9b0;
+  font-weight: bold;
+}
+
+.terminal__title {
+  flex: 1;
+  font-weight: 600;
+}
+
+.terminal__count {
+  color: #858585;
+  font-size: 11px;
+}
+
+.terminal__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.terminal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #858585;
+  text-align: center;
+  gap: 8px;
+}
+
+.terminal-hint {
+  font-size: 11px;
+  color: #6a6a6a;
+}
+
+.terminal-entry {
+  margin-bottom: 8px;
+  border: 1px solid #3e3e42;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.terminal-entry--failed {
+  border-color: #f14c4c;
+}
+
+.terminal-entry__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #2d2d2d;
+  border: none;
+  color: #d4d4d4;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.terminal-entry__header:hover {
+  background: #333333;
+}
+
+.terminal-entry__prompt {
+  color: #4ec9b0;
+  font-weight: bold;
+}
+
+.terminal-entry__command {
+  flex: 1;
+  color: #ce9178;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.terminal-entry__time {
+  color: #858585;
+  font-size: 10px;
+}
+
+.terminal-entry__exit-code {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: #2d2d2d;
+}
+
+.terminal-entry__exit-code--ok {
+  color: #4ec9b0;
+}
+
+.terminal-entry__exit-code--fail {
+  color: #f14c4c;
+}
+
+.terminal-entry__toggle {
+  color: #858585;
+  font-size: 10px;
+}
+
+.terminal-entry__output {
+  margin: 0;
+  padding: 8px 10px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow-y: auto;
+}

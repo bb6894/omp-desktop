@@ -29,7 +29,7 @@ function readFileAsBase64(file: File): Promise<string> {
         const base64 = result.split(",")[1] ?? "";
         resolve(base64);
       } else {
-        reject(new Error("Failed to read file"));
+        reject(new Error("读取文件失败"));
       }
     };
     reader.onerror = () => reject(reader.error);
