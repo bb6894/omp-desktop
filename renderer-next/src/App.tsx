@@ -16,7 +16,7 @@ import {
   type TimelineModel
 } from "./lib/event-reducer";
 import { attachSessionEvents } from "./lib/event-channel";
-import { LeftRail } from "./ui/left-rail";
+import { LeftRail, type RailMode } from "./ui/left-rail";
 import { NewSessionPrompt } from "./ui/new-session-prompt";
 import { RightPanel } from "./ui/right-panel";
 import { Timeline } from "./ui/timeline";
@@ -60,6 +60,10 @@ function Workbench({ transport }: { transport: Transport }) {
   const [workbench, setWorkbench] = useState<WorkbenchState | null>(null);
   const [runtimeUpdate, setRuntimeUpdate] = useState<{ version: string; latestVersion: string | null; updateAvailable: boolean } | null>(null);
   const [approvalRules, setApprovalRules] = useState<ApprovalRuleLists | null>(null);
+  const [railMode, setRailMode] = useState<RailMode>(null);
+  const [railModeSessionId, setRailModeSessionId] = useState<string | null>(null);
+  const [forkInput, setForkInput] = useState("");
+  const [handoffInput, setHandoffInput] = useState("");
 
   // Decision B: uuid → Host child route that runs this desktop session.
   // Mirror for callbacks that must read the latest model without re-arming.
@@ -429,6 +433,90 @@ function Workbench({ transport }: { transport: Transport }) {
       setBusy(false);
     }
   }, [bridge, refresh, selectedId]);
+  const renameSession = useCallback(
+    async (sessionId: string, name: string) => {
+      const route = routes.current.get(sessionId);
+      if (!route) return;
+      try {
+        await bridge.renameSession(route, name);
+        await refresh();
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : String(error));
+      }
+    },
+    [bridge, refresh]
+  );
+
+  const openForkMode = useCallback((sessionId: string) => {
+    setRailMode("fork");
+    setRailModeSessionId(sessionId);
+    setForkInput("");
+    setHandoffInput("");
+  }, []);
+
+  const openHandoffMode = useCallback((sessionId: string) => {
+    setRailMode("handoff");
+    setRailModeSessionId(sessionId);
+    setForkInput("");
+    setHandoffInput("");
+  }, []);
+
+  const cancelRailMode = useCallback(() => {
+    setRailMode(null);
+    setRailModeSessionId(null);
+    setForkInput("");
+    setHandoffInput("");
+  }, []);
+
+  const confirmFork = useCallback(async () => {
+    const sessionId = railModeSessionId;
+    const entryId = forkInput.trim();
+    if (!sessionId || !entryId) return;
+    const route = routes.current.get(sessionId);
+    if (!route) return;
+    setBusy(true);
+    cancelRailMode();
+    try {
+      const data = await bridge.runAgentCommand(route, { type: "branch", entryId });
+      const newId = typeof data.sessionId === "string" ? data.sessionId : null;
+      if (newId) {
+        await refresh();
+        const fresh = await refresh();
+        applySelection(newId, fresh);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  }, [bridge, cancelRailMode, forkInput, railModeSessionId, refresh, applySelection]);
+
+  const confirmHandoff = useCallback(async () => {
+    const sessionId = railModeSessionId;
+    const customInstructions = handoffInput.trim();
+    if (!sessionId) return;
+    const route = routes.current.get(sessionId);
+    if (!route) return;
+    setBusy(true);
+    cancelRailMode();
+    try {
+      const cmd = customInstructions.length > 0
+        ? { type: "handoff", customInstructions }
+        : { type: "handoff" };
+      const data = await bridge.runAgentCommand(route, cmd);
+      const newId = typeof data.sessionId === "string" ? data.sessionId : null;
+      if (newId) {
+        await refresh();
+        const fresh = await refresh();
+        applySelection(newId, fresh);
+      }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  }, [bridge, cancelRailMode, handoffInput, railModeSessionId, refresh, applySelection]);
+
 
   const selected = useMemo(
     () => views?.find((view) => view.id === selectedId) ?? null,
@@ -477,10 +565,24 @@ function Workbench({ transport }: { transport: Transport }) {
         <LeftRail
           views={views}
           selectedId={selectedId}
-          onSelect={(id) => applySelection(id, views)}
+          onSelect={(id) => {
+            if (railMode === "fork") openForkMode(id);
+            else if (railMode === "handoff") openHandoffMode(id);
+            else applySelection(id, views);
+          }}
           onContinue={transport === "tauri" ? (id) => void continueHistory(id) : undefined}
           onNewSession={transport === "tauri" ? () => void beginNewSession() : undefined}
           canCreate={transport === "tauri"}
+          onRename={transport === "tauri" ? renameSession : undefined}
+          mode={railMode}
+          modeSessionId={railModeSessionId}
+          forkInput={forkInput}
+          handoffInput={handoffInput}
+          onForkInput={setForkInput}
+          onHandoffInput={setHandoffInput}
+          onConfirmFork={confirmFork}
+          onConfirmHandoff={confirmHandoff}
+          onCancel={cancelRailMode}
         />
         <main className="center-session" aria-label="当前会话">
           {composing ? (
@@ -563,18 +665,18 @@ function Workbench({ transport }: { transport: Transport }) {
                   busy={busy || selected.runtimeState === "waiting-user"}
                   turnActive={(timelines[selected.id]?.turnActive ?? false)}
                   runtimeCommands={timelineForSelected.commands}
-                  onSend={(text) => {
+                  onSend={(text, images) => {
                     const route = resolveRoute(selected.id);
                     if (!route) {
                       setNotice("PRODUCT_NO_ACTIVE_SESSION");
                       return;
                     }
                     lastPrompts.current[selected.id] = text;
-                    void bridge.sendPrompt(route, text).catch((error: unknown) =>
+                    void bridge.sendPrompt(route, text, undefined, images).catch((error: unknown) =>
                       setNotice(error instanceof Error ? error.message : String(error))
                     );
                   }}
-                  onSteer={(text) => {
+                  onSteer={(text, _images) => {
                     const route = resolveRoute(selected.id);
                     if (!route) return;
                     void bridge.steerSession(route, text).catch((error: unknown) =>
@@ -686,6 +788,7 @@ function Workbench({ transport }: { transport: Transport }) {
                 setNotice(error instanceof Error ? error.message : String(error))
               );
           }}
+          subAgents={timelineForSelected.subAgents}
         />
       </div>
     </div>

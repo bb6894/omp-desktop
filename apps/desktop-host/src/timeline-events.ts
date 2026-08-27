@@ -17,7 +17,10 @@ import {
   type TimelineEvent,
   type ToolFinishedEvent,
   type ToolOutputEvent,
-  type ToolStartedEvent
+  type ToolStartedEvent,
+  type RuntimeUpdateEvent,
+  type SubAgentInfo,
+  type SubAgentsUpdateEvent
 } from "../../../protocol/domain";
 
 /**
@@ -314,6 +317,25 @@ export function translateFrame(frame: RpcFrame): TranslateResult {
         kind: "session.info",
         name
       } satisfies Omit<SessionInfoEvent, "v" | "seq" | "sessionId">);
+      return { events, ignored: 0 };
+    }
+
+    case "subagents_update": {
+      const raw = Array.isArray(frame.agents) ? frame.agents : [];
+      const agents: SubAgentInfo[] = [];
+      for (const agent of raw) {
+        if (!isRecord(agent)) continue;
+        const id = typeof agent.id === "string" ? agent.id : null;
+        const name = typeof agent.name === "string" ? agent.name : "";
+        const status = agent.status === "running" || agent.status === "idle" || agent.status === "completed" || agent.status === "failed" ? agent.status : "idle";
+        const prompt = typeof agent.prompt === "string" ? agent.prompt : undefined;
+        if (id === null) continue;
+        agents.push({ id, name, status, prompt });
+      }
+      events.push({
+        kind: "subagents.update",
+        agents
+      } satisfies Omit<SubAgentsUpdateEvent, "v" | "seq" | "sessionId">);
       return { events, ignored: 0 };
     }
 

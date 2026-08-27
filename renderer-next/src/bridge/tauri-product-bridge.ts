@@ -288,11 +288,12 @@ export function createTauriProductBridge(seams?: Partial<TauriSeams>): ProductBr
       await sendNested(sessionId, { type: "set_model", provider, modelId });
     },
 
-    async sendPrompt(targetId: string, text: string, behavior?: "steer" | "followUp"): Promise<void> {
+    async sendPrompt(targetId: string, text: string, behavior?: "steer" | "followUp", images?: {type:string; data:string; mimeType:string}[]): Promise<void> {
       await sendNested(targetId, {
         type: "prompt",
         message: text,
-        ...(behavior ? { streamingBehavior: behavior } : {})
+        ...(behavior ? { streamingBehavior: behavior } : {}),
+        ...(images && images.length > 0 ? { images } : {})
       });
     },
 
@@ -360,9 +361,11 @@ export function createTauriProductBridge(seams?: Partial<TauriSeams>): ProductBr
       });
     },
 
-    async removeApprovalRule(ruleId: string): Promise<boolean> {
-      const result = await thin<{ removed?: unknown }>("approval_rules_remove", { ruleId });
-      return result.removed === true;
+    async renameSession(targetId: string, name: string): Promise<void> {
+      await sendNested(targetId, { type: "set_session_name", name });
+    },
+    async removeApprovalRule(ruleId: string): Promise<void> {
+      await thin<void>("approval_rules_remove", { targetSessionId: route(), id: ruleId });
     }
   };
 }

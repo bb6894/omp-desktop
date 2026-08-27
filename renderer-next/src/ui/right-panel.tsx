@@ -10,7 +10,7 @@ import {
   type WorkspaceFileEntry,
   type WorkspaceStatus
 } from "../bridge/product-bridge";
-
+import type { SubAgentInfo } from "../../../protocol/domain";
 const STATE_LABEL: Record<SessionViewData["runtimeState"], string> = {
   idle: "空闲",
   running: "运行中",
@@ -31,7 +31,8 @@ export function RightPanel({
   workbench,
   runtimeUpdate,
   onRemoveRule,
-  onToggle
+  onToggle,
+  subAgents
 }: {
   session: SessionViewData | null;
   approvalRules: ApprovalRuleLists | null;
@@ -39,6 +40,7 @@ export function RightPanel({
   runtimeUpdate: { version: string; latestVersion: string | null; updateAvailable: boolean } | null;
   onRemoveRule: (ruleId: string) => void;
   onToggle: (command: Record<string, unknown>) => void;
+  subAgents: readonly SubAgentInfo[];
 }) {
   const bridge = useProductBridge();
   const [tab, setTab] = useState<Tab>("detail");
@@ -280,6 +282,25 @@ export function RightPanel({
                 <p className="right-panel__update-text">
                   版本: {runtimeUpdate.version}
                 </p>
+              </section>
+            )}
+            {(session !== null && subAgents.length > 0) && (
+              <section className="right-panel__subagents" aria-label="子代理">
+                <p className="right-panel__rules-title">子代理</p>
+                <ul className="right-panel__subagent-list">
+                  {subAgents.map((agent) => (
+                    <li key={agent.id} className={`right-panel__subagent right-panel__subagent--${agent.status}`}>
+                      <span className="right-panel__subagent-id">{agent.id.slice(0, 8)}…</span>
+                      <span className="right-panel__subagent-name">{agent.name || "未命名"}</span>
+                      <span className={`right-panel__subagent-status right-panel__subagent-status--${agent.status}`}>
+                        {agent.status === "running" ? "运行中" : agent.status === "idle" ? "空闲" : agent.status === "completed" ? "已完成" : "失败"}
+                      </span>
+                      {agent.prompt && (
+                        <p className="right-panel__subagent-prompt">{agent.prompt.slice(0, 120)}{agent.prompt.length > 120 ? "…" : ""}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
           </div>

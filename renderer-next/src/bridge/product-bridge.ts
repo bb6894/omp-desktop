@@ -80,7 +80,7 @@ export type ProductBridge = {
   /** Runs one allowlisted Runtime command (slash-palette surface). */
   runAgentCommand(sessionId: string, command: Record<string, unknown>): Promise<Record<string, unknown>>;
   cycleThinkingLevel(sessionId: string): Promise<void>;
-  sendPrompt(sessionId: string, text: string, behavior?: "steer" | "followUp"): Promise<void>;
+  sendPrompt(sessionId: string, text: string, behavior?: "steer" | "followUp", images?: {type:string; data:string; mimeType:string}[]): Promise<void>;
   openRuntimeSession(sessionId: string): Promise<void>;
   /** Journaled timeline events after `afterSeq`; dropped=true forces re-hydration. */
   replayTimeline(sessionId: string, afterSeq: number): Promise<TimelineReplay>;
@@ -99,7 +99,9 @@ export type ProductBridge = {
     scope: "session" | "project",
     sourceInteractionId: string | null
   ): Promise<ApprovalGrantOutcome>;
-  removeApprovalRule(ruleId: string): Promise<boolean>;
+  removeApprovalRule(ruleId: string): Promise<void>;
+  /** Renames a session by its id; empties or exceeds 64 chars are silently rejected. */
+  renameSession(sessionId: string, name: string): Promise<void>;
 };
 
 export const ProductBridgeContext = createContext<ProductBridge | null>(null);

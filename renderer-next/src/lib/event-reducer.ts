@@ -2,7 +2,8 @@ import {
   isLiveRunState,
   type PlanPhaseView,
   type RunStateValue,
-  type SlashCommandInfo
+  type SlashCommandInfo,
+  type SubAgentInfo
 } from "../../../protocol/domain";
 
 /**
@@ -62,8 +63,9 @@ export type TimelineModel = {
   /** Runtime update status from runtime.update events. */
   runtimeUpdate: { version: string; latestVersion: string | null; updateAvailable: boolean } | null;
   sessionName: string | null;
+  /** Live sub-agent list from subagents.update events. */
+  subAgents: readonly SubAgentInfo[];
 };
-
 const MAX_TOOL_OUTPUT = 8_000;
 
 export function emptyTimeline(): TimelineModel {
@@ -78,7 +80,8 @@ export function emptyTimeline(): TimelineModel {
     commands: [],
     configThinking: null,
     runtimeUpdate: null,
-    sessionName: null
+    sessionName: null,
+    subAgents: []
   };
 }
 
@@ -341,6 +344,16 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         lastSeq: event.seq,
         runtimeUpdate: { version: info.version, latestVersion, updateAvailable }
       };
+    }
+
+    case "subagents.update": {
+      const agents = Array.isArray(event.agents)
+        ? event.agents.filter(
+            (a): a is SubAgentInfo =>
+              typeof a === "object" && a !== null && typeof (a as SubAgentInfo).id === "string"
+          )
+        : [];
+      return { ...based, lastSeq: event.seq, subAgents: agents };
     }
 
     default:

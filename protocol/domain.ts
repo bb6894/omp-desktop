@@ -155,7 +155,8 @@ export type TimelineEvent =
   | CommandsUpdateEvent
   | ConfigUpdateEvent
   | SessionInfoEvent
-  | RuntimeUpdateEvent;
+  | RuntimeUpdateEvent
+  | SubAgentsUpdateEvent;
 
 export type TimelineEventKind = TimelineEvent["kind"];
 
@@ -212,4 +213,14 @@ export type RuntimeVersionInfo = {
 export type RuntimeUpdateEvent = TimelineEnvelope<"runtime.update"> & {
   info: RuntimeVersionInfo;
   status: "checking" | "available" | "current" | "error";
+};
+export type SubAgentInfo = {
+  id: string;
+  name: string;
+  status: "running" | "idle" | "completed" | "failed";
+  prompt?: string;
+};
+
+export type SubAgentsUpdateEvent = TimelineEnvelope<"subagents.update"> & {
+  agents: readonly SubAgentInfo[];
 };

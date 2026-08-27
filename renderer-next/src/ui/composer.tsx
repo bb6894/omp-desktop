@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { WorkbenchState } from "../bridge/product-bridge";
 import type { SlashCommandInfo } from "../../../protocol/domain";
 import {
@@ -8,6 +8,34 @@ import {
   runtimeCommandToPalette,
   type SlashCommand
 } from "../lib/slash-commands";
+
+const MAX_IMAGES = 3;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+type AttachedImage = {
+  type: string;
+  data: string;
+  mimeType: string;
+};
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result === "string") {
+        // Remove data URL prefix
+        const base64 = result.split(",")[1] ?? "";
+        resolve(base64);
+      } else {
+        reject(new Error("Failed to read file"));
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export function Composer({
   workbench,
@@ -27,8 +55,8 @@ export function Composer({
   turnActive: boolean;
   /** Live Runtime registry streamed via commands.update. */
   runtimeCommands: readonly SlashCommandInfo[];
-  onSend: (text: string) => void;
-  onSteer: (text: string) => void;
+  onSend: (text: string, images?: AttachedImage[]) => void;
+  onSteer: (text: string, images?: AttachedImage[]) => void;
   onSlashCommand: (command: SlashCommand, rest: string) => void;
   onRunBash: (command: string) => void;
   onModelChange: (provider: string, modelId: string) => void;
@@ -36,6 +64,8 @@ export function Composer({
 }) {
   const [value, setValue] = useState("");
   const [menuIndex, setMenuIndex] = useState(0);
+  const [images, setImages] = useState<AttachedImage[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const trimmed = value.trim();
   const parsedSlash = parseSlashInput(value);
   const bangCommand = parseBangInput(value);
@@ -49,12 +79,62 @@ export function Composer({
   useEffect(() => {
     setMenuIndex(0);
   }, [value]);
+  useEffect(() => {
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+
+  async function addImageFile(file: File): Promise<void> {
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+      return; // silently ignore unsupported types
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      return; // silently ignore oversized files
+    }
+    if (images.length >= MAX_IMAGES) {
+      return;
+    }
+    try {
+      const base64 = await readFileAsBase64(file);
+      setImages((prev) => [...prev, { type: "image", data: base64, mimeType: file.type }]);
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  function handlePaste(event: ClipboardEvent): void {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          void addImageFile(file);
+        }
+      }
+    }
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>): void {
+    event.preventDefault();
+    const files = Array.from(event.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+    void Promise.all(files.slice(0, MAX_IMAGES - images.length).map(addImageFile)).then(() => {
+      // Focus back on textarea
+      const ta = document.querySelector<HTMLTextAreaElement>(".composer__input");
+      ta?.focus();
+    });
+  }
+
+  function handleDragOver(event: React.DragEvent<HTMLDivElement>): void {
+    event.preventDefault();
+  }
 
   const submit = () => {
     if (!trimmed || busy) return;
     if (bangCommand !== null && parsedSlash === null) {
       onRunBash(bangCommand);
       setValue("");
+      setImages([]);
       setMenuIndex(0);
       return;
     }
@@ -66,20 +146,23 @@ export function Composer({
       if (exact) {
         onSlashCommand(exact, parsedSlash.rest);
         setValue("");
+        setImages([]);
         setMenuIndex(0);
         return;
       }
       // Unknown /token: let the Runtime decide (it owns skills/MCP commands
       // that may not be in the streamed registry yet).
-      if (turnActive) onSteer(trimmed);
-      else onSend(trimmed);
+      if (turnActive) onSteer(trimmed, images);
+      else onSend(trimmed, images);
       setValue("");
+      setImages([]);
       setMenuIndex(0);
       return;
     }
-    if (turnActive) onSteer(trimmed);
-    else onSend(trimmed);
+    if (turnActive) onSteer(trimmed, images);
+    else onSend(trimmed, images);
     setValue("");
+    setImages([]);
   };
 
   return (
@@ -118,8 +201,58 @@ export function Composer({
             队列 {workbench.queuedCount}
           </span>
         ) : null}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple
+          className="composer__file-input"
+          onChange={(event) => {
+            const files = Array.from(event.currentTarget.files ?? []).slice(
+              0,
+              MAX_IMAGES - images.length
+            );
+            void Promise.all(files.map(addImageFile)).then(() => {
+              event.currentTarget.value = "";
+            });
+          }}
+        />
+        <button
+          type="button"
+          className="button composer__attach"
+          disabled={images.length >= MAX_IMAGES}
+          onClick={() => fileInputRef.current?.click()}
+          title={`附加图片（最多 ${MAX_IMAGES} 张）`}
+        >
+          🖼 {images.length > 0 ? `${images.length}/${MAX_IMAGES}` : "图片"}
+        </button>
       </div>
-      <div className="composer__body">
+      <div
+        className="composer__body"
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+      >
+        {images.length > 0 && (
+          <div className="composer__attachments">
+            {images.map((img, index) => (
+              <div key={index} className="composer__attachment">
+                <img
+                  src={`data:${img.mimeType};base64,${img.data}`}
+                  alt={`附件 ${index + 1}`}
+                  className="composer__attachment-img"
+                />
+                <button
+                  type="button"
+                  className="composer__attachment-remove"
+                  onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                  title="删除图片"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         {menuOpen && menuItems.length > 0 && (
           <ul className="slash-menu" role="listbox" aria-label="斜杠命令">
             {menuItems.map((command, index) => (
@@ -135,6 +268,7 @@ export function Composer({
                   onClick={() => {
                     onSlashCommand(command, parsedSlash?.rest ?? "");
                     setValue("");
+                    setImages([]);
                     setMenuIndex(0);
                   }}
                 >
