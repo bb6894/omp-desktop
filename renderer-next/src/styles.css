@@ -1170,3 +1170,36 @@ body {
   color: var(--text-dim, #8a8a93);
   margin-left: auto;
 }
+
+/* Runtime update notification in right panel */
+.right-panel__update {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--bg-raised, #f6f6f7);
+  border-radius: 8px;
+  border: 1px solid var(--border, #e5e5ea);
+}
+
+.right-panel__update--current {
+  background: var(--bg-success, #f0fdf4);
+  border-color: var(--border-success, #bbf7d0);
+}
+
+.right-panel__update-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--text-primary, #1c1c1e);
+}
+
+.right-panel__update-text {
+  font-size: 12px;
+  margin: 0 0 4px 0;
+  color: var(--text-secondary, #636366);
+}
+
+.right-panel__update-hint {
+  font-size: 11px;
+  margin: 0;
+  color: var(--text-tertiary, #8e8e93);
+}

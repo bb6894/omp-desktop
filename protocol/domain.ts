@@ -154,7 +154,8 @@ export type TimelineEvent =
   | SystemNoteEvent
   | CommandsUpdateEvent
   | ConfigUpdateEvent
-  | SessionInfoEvent;
+  | SessionInfoEvent
+  | RuntimeUpdateEvent;
 
 export type TimelineEventKind = TimelineEvent["kind"];
 
@@ -192,3 +193,23 @@ const TERMINAL_RUN_STATES: Record<"idle" | "completed" | "interrupted" | "failed
 export function isLiveRunState(state: RunStateValue): boolean {
   return !(state in TERMINAL_RUN_STATES);
 }
+
+/** Runtime version info exposed to the renderer for update checks. */
+export type RuntimeVersionInfo = {
+  /** Current pinned version. */
+  version: string;
+  /** SHA-256 of the current binary. */
+  sha256: string;
+  /** Remote available version (null = unavailable). */
+  latestVersion: string | null;
+  /** Remote SHA-256 (null = unavailable). */
+  latestSha256: string | null;
+  /** True when a newer version is available. */
+  updateAvailable: boolean;
+};
+
+/** Emitted when a runtime update check completes. */
+export type RuntimeUpdateEvent = TimelineEnvelope<"runtime.update"> & {
+  info: RuntimeVersionInfo;
+  status: "checking" | "available" | "current" | "error";
+};

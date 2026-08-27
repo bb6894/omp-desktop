@@ -58,6 +58,7 @@ function Workbench({ transport }: { transport: Transport }) {
   const [newProjectPath, setNewProjectPath] = useState<string | null>(null);
   const [timelines, setTimelines] = useState<Record<string, TimelineModel>>({});
   const [workbench, setWorkbench] = useState<WorkbenchState | null>(null);
+  const [runtimeUpdate, setRuntimeUpdate] = useState<{ version: string; latestVersion: string | null; updateAvailable: boolean } | null>(null);
   const [approvalRules, setApprovalRules] = useState<ApprovalRuleLists | null>(null);
 
   // Decision B: uuid → Host child route that runs this desktop session.
@@ -143,6 +144,11 @@ function Workbench({ transport }: { transport: Transport }) {
           // config changes refresh the composer controls.
           if (event.kind === "session.info") void refresh();
           if (event.kind === "config.update") void loadWorkbench(routeId);
+          if (event.kind === "runtime.update") {
+            const info = (event as { info?: { version: string; latestVersion: string | null; updateAvailable: boolean } }).info;
+            if (info) setRuntimeUpdate(info);
+          }
+          if (event.kind === "runtime.update") void loadWorkbench(routeId);
         },
         onExit: (reason) => setNotice(`会话进程已退出：${reason || "未知原因"}`),
         onDesync: () => void hydrate(boundId)
@@ -665,6 +671,7 @@ function Workbench({ transport }: { transport: Transport }) {
           session={selected}
           approvalRules={approvalRules}
           workbench={workbench}
+          runtimeUpdate={runtimeUpdate}
           onRemoveRule={removeRule}
           onToggle={(command) => {
             const route = selected ? routes.current.get(selected.id) : null;

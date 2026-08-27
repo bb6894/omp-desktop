@@ -59,7 +59,8 @@ export type TimelineModel = {
   /** Last observed runtime-side config (model/thinking) outside the composer. */
   configModel: string | null;
   configThinking: string | null;
-  /** Session name from session_info_update (e.g. after /name). */
+  /** Runtime update status from runtime.update events. */
+  runtimeUpdate: { version: string; latestVersion: string | null; updateAvailable: boolean } | null;
   sessionName: string | null;
 };
 
@@ -73,9 +74,10 @@ export function emptyTimeline(): TimelineModel {
     lastSeq: 0,
     desynced: false,
     unrecognized: 0,
-    commands: [],
     configModel: null,
+    commands: [],
     configThinking: null,
+    runtimeUpdate: null,
     sessionName: null
   };
 }
@@ -83,7 +85,6 @@ export function emptyTimeline(): TimelineModel {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
 /** Normalizes OMP message content: plain string or block array with text parts. */
 function textOfContent(content: unknown): string {
   if (typeof content === "string") return content;
@@ -322,6 +323,23 @@ export function reduceTimeline(model: TimelineModel, event: unknown): TimelineMo
         ...based,
         lastSeq: event.seq,
         sessionName: typeof event.name === "string" ? event.name : based.sessionName
+      };
+    }
+
+    case "runtime.update": {
+      const info = event.info;
+      if (!isRecord(info) || typeof info.version !== "string") {
+        return { ...based, lastSeq: event.seq, unrecognized: based.unrecognized + 1 };
+      }
+      const latestVersion = typeof info.latestVersion === "string" ? info.latestVersion : null;
+      const updateAvailable =
+        typeof info.updateAvailable === "boolean"
+          ? info.updateAvailable
+          : latestVersion !== null && latestVersion > info.version;
+      return {
+        ...based,
+        lastSeq: event.seq,
+        runtimeUpdate: { version: info.version, latestVersion, updateAvailable }
       };
     }
 

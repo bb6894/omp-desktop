@@ -342,3 +342,26 @@ export function runStateEvent(state: RunStateValue): Omit<RunStateEvent, "v" | "
 export function systemNoteEvent(text: string): Omit<SystemNoteEvent, "v" | "seq" | "sessionId"> {
   return { kind: "system.note", level: "info", text };
 }
+
+/** Emit a runtime.update event based on the update check result. */
+export function runtimeUpdateEvent(
+  result: import("./runtime-updater").UpdateCheckResult,
+  currentVersion: string
+): import("../../protocol/domain").RuntimeUpdateEvent {
+  const status = result.status;
+  const info = {
+    version: currentVersion,
+    sha256: result.status === "current" ? (result as { sha256: string }).sha256 : "",
+    latestVersion: result.status === "available" ? (result as { latestVersion: string }).latestVersion : null,
+    latestSha256: null,
+    updateAvailable: result.status === "available"
+  };
+  return {
+    kind: "runtime.update",
+    info,
+    status: result.status as "checking" | "available" | "current" | "error",
+    v: 1,
+    seq: 0,
+    sessionId: ""
+  };
+}

@@ -69,7 +69,8 @@ export function createHostSessionService(
   return sessions;
 }
 
-async function runHost(): Promise<void> {
+
+async function runHostWithUpdateCheck(): Promise<void> {
   const args = process.argv.slice(2);
   if (!args.includes("--serve")) {
     process.stdout.write(JSON.stringify(hostSnapshot()) + "\n");
@@ -85,24 +86,32 @@ async function runHost(): Promise<void> {
   const agents = args.includes("--fixture")
     ? new FixtureAgentService((event) => sessions.emit(event))
     : new AgentService({
-      runtimePath: optionValue(args, "--runtime") ?? defaultRuntimePath(process.execPath),
-      cwd,
-      sessionDir: paths.desktopSessionsDir,
-      ruleBook,
-      onEvent: (event) => sessions.emit(event),
-      onDiagnostic: (message) => process.stderr.write(`${message}\n`)
-    });
+        runtimePath: optionValue(args, "--runtime") ?? defaultRuntimePath(process.execPath),
+        cwd,
+        sessionDir: paths.desktopSessionsDir,
+        ruleBook,
+        onEvent: (event) => sessions.emit(event),
+        onDiagnostic: (message) => process.stderr.write(`${message}\n`)
+      });
   sessions.setAgentService(agents);
+  // Check for runtime updates on startup and emit to all sessions.
+  try {
+    const result = await checkRuntimeUpdate();
+    const timelineEvent = runtimeUpdateEvent(result, RUNTIME_MANIFEST.ompVersion);
+    sessions.emit(timelineEvent);
+  } catch {
+    // Silently ignore update check failures — host still works.
+  }
   await serveLocalHost(process.stdin, {
     write: (bytes) => process.stdout.write(Buffer.from(bytes))
   }, sessions);
   if (agents instanceof AgentService) await agents.stopAll();
 }
 
-const isCompiledHost = process.execPath.toLowerCase().endsWith("omp-desktop-host.exe");
 
+const isCompiledHost = process.execPath.toLowerCase().endsWith("omp-desktop-host.exe");
 if (import.meta.main || isCompiledHost) {
-  void runHost().catch(() => {
+  void runHostWithUpdateCheck().catch(() => {
     process.stderr.write("HOST_STARTUP_ERROR\n");
     process.exitCode = 1;
   });

@@ -29,12 +29,14 @@ export function RightPanel({
   session,
   approvalRules,
   workbench,
+  runtimeUpdate,
   onRemoveRule,
   onToggle
 }: {
   session: SessionViewData | null;
   approvalRules: ApprovalRuleLists | null;
   workbench: WorkbenchState | null;
+  runtimeUpdate: { version: string; latestVersion: string | null; updateAvailable: boolean } | null;
   onRemoveRule: (ruleId: string) => void;
   onToggle: (command: Record<string, unknown>) => void;
 }) {
@@ -261,6 +263,25 @@ export function RightPanel({
                 </li>
               </ul>
             </section>
+            {runtimeUpdate && runtimeUpdate.updateAvailable && (
+              <section className="right-panel__update" aria-label="运行时更新">
+                <p className="right-panel__update-title">⚠️ 检测到新版本的 OMP 运行时</p>
+                <p className="right-panel__update-text">
+                  当前版本: {runtimeUpdate.version} → 最新版本: {runtimeUpdate.latestVersion}
+                </p>
+                <p className="right-panel__update-hint">
+                  请手动下载新版本替换 artifacts/omp-windows-x64.exe 文件
+                </p>
+              </section>
+            )}
+            {runtimeUpdate && !runtimeUpdate.updateAvailable && runtimeUpdate.latestVersion && (
+              <section className="right-panel__update right-panel__update--current" aria-label="运行时版本">
+                <p className="right-panel__update-title">✓ 运行时已是最新版本</p>
+                <p className="right-panel__update-text">
+                  版本: {runtimeUpdate.version}
+                </p>
+              </section>
+            )}
           </div>
         )
       ) : (
