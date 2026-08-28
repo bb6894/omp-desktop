@@ -12,7 +12,6 @@ describe("Welcome page send flow", () => {
     // Verify: when sendPromptForWelcome is called without a project,
     // it should call openProjectPicker (not just show a toast error)
     let pickerCalled = false;
-    let errorShown = false;
 
     // Test the logic flow
     const projectPath = mockBridge.openProjectPicker().then(path => {
