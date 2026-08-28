@@ -538,6 +538,13 @@ function Workbench({ transport }: { transport: Transport }) {
     if (!message.trim() || transport !== "tauri" || busy) return;
     // If no session selected, create new one; otherwise use selected
     if (!selectedId) {
+      // If no project path available, open picker first
+      const existingProject = views?.[0]?.projectPath;
+      if (!existingProject && !newProjectPath) {
+        const picked = await bridge.openProjectPicker();
+        if (!picked) return; // User cancelled
+        setNewProjectPath(picked);
+      }
       await createSession(message);
       return;
     }
